@@ -4,6 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BTC Pizza Day - Live Dashboard</title>
+    <meta name="description" content="BTC Pizza Day is a public Solana dashboard for tracking Pump.fun creator fees, WBTC buys, holder draw eligibility, and onchain airdrop receipts." />
+    <meta name="theme-color" content="#05060a" />
+    <link rel="icon" type="image/png" href="/assets/pizza-slice-favicon-256.png" />
+    <link rel="apple-touch-icon" href="/assets/pizza-slice-favicon-256.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="BTC Pizza Day" />
+    <meta property="og:description" content="Transparent Pump.fun creator-fee to WBTC airdrops on Solana, with live receipts and holder draw eligibility." />
+    <meta property="og:image" content="/assets/btc-pizza-dashboard-concept.png" />
+    <meta property="og:site_name" content="BTC Pizza Day" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BTC Pizza Day" />
+    <meta name="twitter:description" content="Track creator fees, WBTC pool, holder draw status, and onchain Solscan receipts in one public dashboard." />
+    <meta name="twitter:image" content="/assets/btc-pizza-dashboard-concept.png" />
     <style>
       :root {
         color-scheme: dark;
@@ -252,11 +265,12 @@
         align-items: center;
         justify-content: flex-end;
         gap: 12px;
-        min-width: 300px;
+        min-width: 470px;
       }
 
       .status-pill,
-      .wallet-pill {
+      .wallet-pill,
+      .contract-pill {
         display: inline-flex;
         align-items: center;
         min-height: 44px;
@@ -277,6 +291,32 @@
 
       .wallet-pill.connected {
         color: var(--mint);
+      }
+
+      .contract-pill {
+        border-width: 1px;
+        border-radius: 999px;
+        background:
+          linear-gradient(145deg, rgba(255, 242, 190, 0.1), rgba(255, 242, 190, 0.03)),
+          rgba(8, 10, 16, 0.68);
+        color: var(--cream);
+        cursor: pointer;
+        min-width: 142px;
+        backdrop-filter: blur(14px) saturate(1.15);
+      }
+
+      .contract-pill.ready {
+        color: var(--cyan);
+      }
+
+      .contract-pill.copied {
+        color: var(--mint);
+        border-color: rgba(81, 244, 169, 0.48);
+      }
+
+      .contract-pill:disabled {
+        cursor: not-allowed;
+        opacity: 0.62;
       }
 
       .hero-copy {
@@ -1239,6 +1279,7 @@
           </nav>
           <div class="top-actions" aria-label="Network and wallet status">
             <span class="status-pill" id="networkStatus">Live<br />on Solana</span>
+            <button class="contract-pill" id="copyContract" type="button" disabled>CA pending</button>
             <button class="wallet-pill" id="connectWallet" type="button">Connect wallet</button>
           </div>
         </header>
@@ -1452,6 +1493,7 @@
       const drawOddsEl = document.querySelector("#drawOdds");
       const connectWalletEl = document.querySelector("#connectWallet");
       const connectWalletSecondaryEl = document.querySelector("#connectWalletSecondary");
+      const copyContractEl = document.querySelector("#copyContract");
       const refreshDataEl = document.querySelector("#refreshData");
       const networkStatusEl = document.querySelector("#networkStatus");
       const marketFallback = {
@@ -1489,6 +1531,17 @@
       function renderShell() {
         countdownEl.textContent = formatTime(state.remaining);
         networkStatusEl.innerHTML = `${state.config?.cluster || "Solana"}<br />${state.config?.rpcConfigured ? "RPC ready" : "RPC missing"}`;
+
+        const contractAddress = state.config?.contractAddress || "";
+        if (contractAddress) {
+          copyContractEl.textContent = `CA ${shortAddress(contractAddress)}`;
+          copyContractEl.disabled = false;
+          copyContractEl.classList.add("ready");
+        } else {
+          copyContractEl.textContent = "CA pending";
+          copyContractEl.disabled = true;
+          copyContractEl.classList.remove("ready", "copied");
+        }
 
         if (state.connectedWallet) {
           connectWalletEl.textContent = shortAddress(state.connectedWallet);
@@ -1696,8 +1749,29 @@
         await loadHolderSnapshot();
       }
 
+      async function copyContractAddress() {
+        const contractAddress = state.config?.contractAddress || "";
+        if (!contractAddress) return;
+
+        try {
+          await navigator.clipboard.writeText(contractAddress);
+          copyContractEl.textContent = "CA copied";
+          copyContractEl.classList.add("copied");
+          window.setTimeout(() => {
+            copyContractEl.textContent = `CA ${shortAddress(contractAddress)}`;
+            copyContractEl.classList.remove("copied");
+          }, 1600);
+        } catch {
+          copyContractEl.textContent = "Copy failed";
+          window.setTimeout(() => {
+            copyContractEl.textContent = `CA ${shortAddress(contractAddress)}`;
+          }, 1600);
+        }
+      }
+
       connectWalletEl.addEventListener("click", connectWallet);
       connectWalletSecondaryEl.addEventListener("click", connectWallet);
+      copyContractEl.addEventListener("click", copyContractAddress);
       refreshDataEl.addEventListener("click", loadChainData);
       holderSearchEl.addEventListener("input", renderHolderBoard);
       tickerTrack.appendChild(tickerTrack.firstElementChild.cloneNode(true));

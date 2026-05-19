@@ -51,6 +51,7 @@ function publicConfig() {
     cluster: env.SOLANA_CLUSTER || "mainnet-beta",
     rpcConfigured: Boolean(env.SOLANA_RPC_URL),
     feeWallet: env.PUBLIC_FEE_WALLET || "",
+    contractAddress: env.PUBLIC_CONTRACT_ADDRESS || env.PUBLIC_TOKEN_MINT || "",
     tokenMint: env.PUBLIC_TOKEN_MINT || "",
     wbtcMint: env.PUBLIC_WBTC_MINT || "9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E",
     distributorWallet: env.PUBLIC_DISTRIBUTOR_WALLET || "",
