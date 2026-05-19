@@ -304,10 +304,9 @@
         align-items: center;
         justify-content: flex-end;
         gap: 12px;
-        min-width: 470px;
+        min-width: 340px;
       }
 
-      .status-pill,
       .wallet-pill,
       .contract-pill {
         display: inline-flex;
@@ -1351,8 +1350,7 @@
             <a href="#airdrops">Airdrops</a>
             <a href="#about">About</a>
           </nav>
-          <div class="top-actions" aria-label="Network and wallet status">
-            <span class="status-pill" id="networkStatus">Live<br />on Solana</span>
+          <div class="top-actions" aria-label="Wallet actions">
             <button class="contract-pill" id="copyContract" type="button" disabled>CA pending</button>
             <button class="wallet-pill" id="connectWallet" type="button">Connect wallet</button>
           </div>
@@ -1569,7 +1567,6 @@
       const connectWalletSecondaryEl = document.querySelector("#connectWalletSecondary");
       const copyContractEl = document.querySelector("#copyContract");
       const refreshDataEl = document.querySelector("#refreshData");
-      const networkStatusEl = document.querySelector("#networkStatus");
       const marketFallback = {
         bitcoin: { usd: null, usd_24h_change: null },
         solana: { usd: null, usd_24h_change: null },
@@ -1604,7 +1601,6 @@
 
       function renderShell() {
         countdownEl.textContent = formatTime(state.remaining);
-        networkStatusEl.innerHTML = `${state.config?.cluster || "Solana"}<br />${state.config?.rpcConfigured ? "RPC ready" : "RPC missing"}`;
 
         const contractAddress = state.config?.contractAddress || "";
         if (contractAddress) {
