@@ -268,7 +268,6 @@
 
       .nav a:focus-visible,
       .button:focus-visible,
-      .wallet-pill:focus-visible,
       .contract-pill:focus-visible {
         outline: 3px solid var(--cyan);
         outline-offset: 3px;
@@ -304,10 +303,9 @@
         align-items: center;
         justify-content: flex-end;
         gap: 12px;
-        min-width: 340px;
+        min-width: 160px;
       }
 
-      .wallet-pill,
       .contract-pill {
         display: inline-flex;
         align-items: center;
@@ -328,14 +326,6 @@
           border-color 140ms ease,
           box-shadow 140ms ease,
           filter 140ms ease;
-      }
-
-      .wallet-pill {
-        color: var(--gold);
-      }
-
-      .wallet-pill.connected {
-        color: var(--mint);
       }
 
       .contract-pill {
@@ -364,7 +354,6 @@
         opacity: 0.62;
       }
 
-      .wallet-pill:hover,
       .contract-pill:not(:disabled):hover {
         transform: translateY(-2px);
         border-color: rgba(85, 223, 255, 0.58);
@@ -378,7 +367,6 @@
         filter: brightness(1.08);
       }
 
-      .wallet-pill:active,
       .contract-pill:not(:disabled):active {
         transform: translateY(1px);
         box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.48);
@@ -1350,9 +1338,8 @@
             <a href="#airdrops">Airdrops</a>
             <a href="#about">About</a>
           </nav>
-          <div class="top-actions" aria-label="Wallet actions">
+          <div class="top-actions" aria-label="Contract actions">
             <button class="contract-pill" id="copyContract" type="button" disabled>CA pending</button>
-            <button class="wallet-pill" id="connectWallet" type="button">Connect wallet</button>
           </div>
         </header>
 
@@ -1419,10 +1406,10 @@
           </article>
 
           <article class="art-panel panel-ticket" id="ticket">
-            <h2>Your Ticket</h2>
-            <strong class="ticket-status" id="ticketStatus">Eligible</strong>
+            <h2>Ticket Check</h2>
+            <strong class="ticket-status" id="ticketStatus">Search</strong>
             <div class="ticket-list">
-              <div class="ticket-row"><b>Your Score</b><span>Time + weight</span><strong id="score">--</strong></div>
+              <div class="ticket-row"><b>Wallet Score</b><span>Time + weight</span><strong id="score">--</strong></div>
               <div class="ticket-row"><b>Round Rank</b><span>Current list</span><strong id="holderRank">--</strong></div>
               <div class="ticket-row"><b>Cutoff</b><span>Score needed</span><strong id="cutoffScore">--</strong></div>
               <div class="ticket-row"><b>Est. WBTC</b><span>Projected slice</span><strong id="estimate">--</strong></div>
@@ -1434,7 +1421,7 @@
           <div class="empty-state" id="receiptEmpty">Configure `PUBLIC_FEE_WALLET` to load live Solana fee-wallet receipts.</div>
           <div class="controls">
             <button class="button primary" id="refreshData" type="button">Refresh chain data</button>
-            <button class="button secondary" id="connectWalletSecondary" type="button">Connect wallet</button>
+            <a class="button secondary" href="#holders">Search holders</a>
           </div>
         </section>
       </section>
@@ -1455,7 +1442,7 @@
           </div>
           <div class="draw-board">
             <div class="draw-card">
-              <h3>Your Round Position</h3>
+              <h3>Searched Round Position</h3>
               <div class="draw-meter" aria-label="Progress above current cutoff"><span id="drawMeter"></span></div>
               <div class="draw-numbers">
                 <div class="draw-number"><span>Rank</span><strong id="drawRank">--</strong></div>
@@ -1494,9 +1481,9 @@
             <div class="holder-toolbar">
               <div>
                 <h3>Current Draw Board</h3>
-                <span>Search any wallet to see rank, cutoff status, and projected slice.</span>
+                <span>Search any wallet or SOL domain to see rank, cutoff status, and projected slice.</span>
               </div>
-              <input class="holder-search" id="holderSearch" type="search" placeholder="Search wallet address" autocomplete="off" />
+              <input class="holder-search" id="holderSearch" type="search" placeholder="Search wallet or SOL domain" autocomplete="off" />
             </div>
             <div class="holder-stats">
               <div class="holder-stat"><span>Round cap</span><strong id="roundCap">--</strong></div>
@@ -1531,7 +1518,6 @@
     <script>
       const state = {
         config: null,
-        connectedWallet: "",
         holderSnapshot: null,
         feeReceipts: [],
         remaining: 0
@@ -1563,10 +1549,9 @@
       const drawRankEl = document.querySelector("#drawRank");
       const drawEdgeEl = document.querySelector("#drawEdge");
       const drawOddsEl = document.querySelector("#drawOdds");
-      const connectWalletEl = document.querySelector("#connectWallet");
-      const connectWalletSecondaryEl = document.querySelector("#connectWalletSecondary");
       const copyContractEl = document.querySelector("#copyContract");
       const refreshDataEl = document.querySelector("#refreshData");
+      let holderSearchTimer = null;
       const marketFallback = {
         bitcoin: { usd: null, usd_24h_change: null },
         solana: { usd: null, usd_24h_change: null },
@@ -1579,6 +1564,33 @@
       function shortAddress(address) {
         if (!address) return "";
         return `${address.slice(0, 4)}...${address.slice(-4)}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function holderDisplayName(holder) {
+        return holder?.solDomain || holder?.domain || holder?.snsName || holder?.name || shortAddress(holder?.wallet || holder?.address || "");
+      }
+
+      function holderSearchText(holder) {
+        return [
+          holder?.wallet,
+          holder?.address,
+          holder?.solDomain,
+          holder?.domain,
+          holder?.snsName,
+          holder?.name
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
       }
 
       function solscanTx(signature) {
@@ -1612,35 +1624,47 @@
           copyContractEl.disabled = true;
           copyContractEl.classList.remove("ready", "copied");
         }
-
-        if (state.connectedWallet) {
-          connectWalletEl.textContent = shortAddress(state.connectedWallet);
-          connectWalletEl.classList.add("connected");
-          connectWalletSecondaryEl.textContent = "Wallet connected";
-        } else {
-          connectWalletEl.textContent = "Connect wallet";
-          connectWalletEl.classList.remove("connected");
-          connectWalletSecondaryEl.textContent = "Connect wallet";
-        }
       }
 
       function renderTicket(current) {
         const isEligible = current?.status === "eligible" || current?.eligible === true;
+        const query = holderSearchEl.value.trim();
         scoreEl.textContent = current?.score?.toLocaleString?.() || "--";
         holderRankEl.textContent = current?.rank ? `#${current.rank}` : "--";
         cutoffScoreEl.textContent = current?.cutoffScore?.toLocaleString?.() || "--";
         estimateEl.textContent = Number.isFinite(Number(current?.estimatedWbtc)) ? Number(current.estimatedWbtc).toFixed(8) : "--";
-        ticketStatusEl.textContent = current ? (isEligible ? "Eligible" : "Not in cut") : "Connect";
-        ticketStatusEl.style.color = isEligible ? "var(--gold)" : "#ff6b58";
-        ticketStatusEl.style.borderColor = isEligible ? "rgba(81, 244, 169, 0.42)" : "rgba(255, 107, 88, 0.5)";
-        ticketStatusEl.style.background = isEligible ? "rgba(81, 244, 169, 0.14)" : "rgba(255, 107, 88, 0.16)";
+        ticketStatusEl.textContent = current ? (isEligible ? "Eligible" : "Not in cut") : query ? "No match" : "Search";
+        ticketStatusEl.style.color = current && isEligible ? "var(--gold)" : "#ff6b58";
+        ticketStatusEl.style.borderColor = current && isEligible ? "rgba(81, 244, 169, 0.42)" : "rgba(255, 107, 88, 0.5)";
+        ticketStatusEl.style.background = current && isEligible ? "rgba(81, 244, 169, 0.14)" : "rgba(255, 107, 88, 0.16)";
       }
 
-      function renderHolderBoard() {
+      function resolveCurrentHolder() {
+        const snapshot = state.holderSnapshot;
+        const query = holderSearchEl.value.trim().toLowerCase();
+        const holders = Array.isArray(snapshot?.holders) ? snapshot.holders : [];
+        if (!query) return null;
+        if (snapshot?.current && holderSearchText(snapshot.current).includes(query)) return snapshot.current;
+
+        return (
+          holders.find((holder) => holderSearchText(holder) === query) ||
+          holders.find((holder) => holderSearchText(holder).includes(query)) ||
+          null
+        );
+      }
+
+      function renderHolderViews() {
+        const current = resolveCurrentHolder();
+        renderTicket(current);
+        renderDrawStats(current);
+        renderHolderBoard(current);
+      }
+
+      function renderHolderBoard(current = resolveCurrentHolder()) {
         const snapshot = state.holderSnapshot;
         const holders = Array.isArray(snapshot?.holders) ? snapshot.holders : [];
         const query = holderSearchEl.value.trim().toLowerCase();
-        const filtered = holders.filter((holder) => (holder.wallet || "").toLowerCase().includes(query));
+        const filtered = holders.filter((holder) => holderSearchText(holder).includes(query));
         const visible = query ? filtered : holders.slice(0, 25);
 
         roundCapEl.textContent = snapshot?.roundCap?.toLocaleString?.() || "--";
@@ -1657,14 +1681,16 @@
               ? visible
                   .map((holder) => {
                     const eligible = holder.status === "eligible" || holder.eligible === true;
+                    const isCurrent = Boolean(current?.wallet && holder.wallet === current.wallet);
+                    const wallet = holder.wallet || holder.address || "";
                     return `
-                      <div class="holder-row ${holder.wallet === state.connectedWallet ? "current" : ""}">
+                      <div class="holder-row ${isCurrent ? "current" : ""}">
                         <strong>${holder.rank ? `#${holder.rank}` : "--"}</strong>
-                        <span class="holder-wallet">${shortAddress(holder.wallet || "")}${holder.wallet === state.connectedWallet ? " (you)" : ""}</span>
+                        <span class="holder-wallet" title="${escapeHtml(wallet)}">${escapeHtml(holderDisplayName(holder))}</span>
                         <strong>${holder.score?.toLocaleString?.() || "--"}</strong>
-                        <span>${holder.balanceLabel || "--"}</span>
-                        <span>${holder.heldLabel || "--"}</span>
-                        <span class="odds-pill">${holder.oddsLabel || "--"}</span>
+                        <span>${escapeHtml(holder.balanceLabel || "--")}</span>
+                        <span>${escapeHtml(holder.heldLabel || "--")}</span>
+                        <span class="odds-pill">${escapeHtml(holder.oddsLabel || "--")}</span>
                         <span class="holder-badge ${eligible ? "" : "out"}">${eligible ? "Made cut" : "Below cut"}</span>
                       </div>
                     `;
@@ -1788,35 +1814,12 @@
 
       async function loadHolderSnapshot() {
         const params = new URLSearchParams();
-        if (state.connectedWallet) params.set("wallet", state.connectedWallet);
+        const walletQuery = holderSearchEl.value.trim();
+        if (walletQuery) params.set("wallet", walletQuery);
         const response = await fetch(`/api/holders?${params}`, { cache: "no-store" });
         state.holderSnapshot = await response.json();
-        const current = state.holderSnapshot.current || null;
-        renderTicket(current);
-        renderDrawStats(current);
-        renderHolderBoard();
+        renderHolderViews();
         holderStatusEl.textContent = state.holderSnapshot.configured === false ? "Config" : "Live";
-      }
-
-      function getWalletProvider() {
-        if (window.phantom?.solana) return window.phantom.solana;
-        if (window.solflare) return window.solflare;
-        if (window.backpack) return window.backpack;
-        if (window.solana?.isPhantom) return window.solana;
-        return window.solana || null;
-      }
-
-      async function connectWallet() {
-        const provider = getWalletProvider();
-        if (!provider) {
-          connectWalletEl.textContent = "Install wallet";
-          return;
-        }
-
-        const result = await provider.connect();
-        state.connectedWallet = result.publicKey?.toString?.() || provider.publicKey?.toString?.() || "";
-        renderShell();
-        await loadHolderSnapshot();
       }
 
       async function copyContractAddress() {
@@ -1839,11 +1842,13 @@
         }
       }
 
-      connectWalletEl.addEventListener("click", connectWallet);
-      connectWalletSecondaryEl.addEventListener("click", connectWallet);
       copyContractEl.addEventListener("click", copyContractAddress);
       refreshDataEl.addEventListener("click", loadChainData);
-      holderSearchEl.addEventListener("input", renderHolderBoard);
+      holderSearchEl.addEventListener("input", () => {
+        renderHolderViews();
+        window.clearTimeout(holderSearchTimer);
+        holderSearchTimer = window.setTimeout(loadHolderSnapshot, 350);
+      });
       tickerTrack.appendChild(tickerTrack.firstElementChild.cloneNode(true));
 
       renderShell();
