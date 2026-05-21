@@ -368,25 +368,6 @@
           10px 10px 0 rgba(0, 0, 0, 0.45);
       }
 
-      .hero-slice {
-        position: absolute;
-        z-index: 2;
-        right: 6.8%;
-        top: 22.6%;
-        width: clamp(150px, 15vw, 250px);
-        aspect-ratio: 1;
-        object-fit: cover;
-        border-radius: 28px;
-        opacity: 0.72;
-        mix-blend-mode: screen;
-        filter:
-          saturate(1.12)
-          drop-shadow(0 18px 34px rgba(0, 0, 0, 0.5))
-          drop-shadow(0 0 20px rgba(247, 183, 51, 0.18));
-        transform: rotate(7deg);
-        pointer-events: none;
-      }
-
       .hero-copy h1 {
         margin: 0;
         color: var(--gold);
@@ -1249,10 +1230,6 @@
           margin: 360px 16px 0;
         }
 
-        .hero-slice {
-          display: none;
-        }
-
         .art-panel {
           min-height: 240px;
         }
@@ -1372,7 +1349,6 @@
           </div>
         </section>
 
-        <img class="hero-slice" src="assets/pizza-slice-3d.png" alt="" aria-hidden="true" />
         <aside class="side-sign">Pump fees in.<span>WBTC slices out.</span></aside>
         <aside class="chalk-sign">Baking freedom<br />one slice<br />at a time</aside>
 
