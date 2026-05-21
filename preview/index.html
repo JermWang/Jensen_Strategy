@@ -182,10 +182,14 @@
       .slice-mark {
         width: 32px;
         height: 32px;
-        border: 3px solid #05060a;
-        background: var(--gold);
-        clip-path: polygon(8% 0, 100% 50%, 8% 100%);
-        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.42);
+        border: 1px solid rgba(247, 183, 51, 0.42);
+        border-radius: 999px;
+        background:
+          radial-gradient(circle at 52% 48%, rgba(255, 183, 53, 0.18), transparent 66%),
+          #08090f url("assets/pizza-slice-3d.png") center / 148% auto no-repeat;
+        box-shadow:
+          0 0 0 2px rgba(5, 6, 10, 0.9),
+          0 0 18px rgba(247, 183, 51, 0.22);
       }
 
       .wordmark {
@@ -364,6 +368,25 @@
           10px 10px 0 rgba(0, 0, 0, 0.45);
       }
 
+      .hero-slice {
+        position: absolute;
+        z-index: 2;
+        right: 6.8%;
+        top: 22.6%;
+        width: clamp(150px, 15vw, 250px);
+        aspect-ratio: 1;
+        object-fit: cover;
+        border-radius: 28px;
+        opacity: 0.72;
+        mix-blend-mode: screen;
+        filter:
+          saturate(1.12)
+          drop-shadow(0 18px 34px rgba(0, 0, 0, 0.5))
+          drop-shadow(0 0 20px rgba(247, 183, 51, 0.18));
+        transform: rotate(7deg);
+        pointer-events: none;
+      }
+
       .hero-copy h1 {
         margin: 0;
         color: var(--gold);
@@ -438,6 +461,10 @@
 
       .panel-pool {
         border-color: rgba(226, 71, 49, 0.45);
+        background:
+          radial-gradient(circle at 28% 44%, rgba(247, 183, 51, 0.23), transparent 39%),
+          linear-gradient(145deg, rgba(226, 71, 49, 0.12), rgba(255, 242, 190, 0.025) 46%),
+          var(--glass);
       }
 
       .panel-next {
@@ -478,8 +505,8 @@
 
       .pool-layout {
         display: grid;
-        grid-template-columns: 43% 1fr;
-        gap: 16px;
+        grid-template-columns: 50% 1fr;
+        gap: 18px;
         align-items: center;
         min-height: 145px;
       }
@@ -487,10 +514,15 @@
       .pizza-pool {
         width: 100%;
         aspect-ratio: 1;
-        object-fit: contain;
-        mix-blend-mode: screen;
-        filter: drop-shadow(0 0 12px rgba(81, 244, 169, 0.2));
-        transform: translate(-2px, 4px) scale(0.95);
+        border: 1px solid rgba(247, 183, 51, 0.24);
+        border-radius: 18px;
+        object-fit: cover;
+        object-position: center;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          0 18px 32px rgba(0, 0, 0, 0.38),
+          0 0 30px rgba(247, 183, 51, 0.14);
+        filter: saturate(1.08) contrast(1.04);
       }
 
       .metric {
@@ -1217,6 +1249,10 @@
           margin: 360px 16px 0;
         }
 
+        .hero-slice {
+          display: none;
+        }
+
         .art-panel {
           min-height: 240px;
         }
@@ -1264,8 +1300,12 @@
         }
 
         .hero-copy h1 {
-          font-size: clamp(26px, 7vw, 34px);
+          font-size: clamp(22px, 6vw, 30px);
           line-height: 1;
+        }
+
+        .pool-layout {
+          grid-template-columns: 0.9fr 1fr;
         }
 
         .info-grid,
@@ -1332,6 +1372,7 @@
           </div>
         </section>
 
+        <img class="hero-slice" src="assets/pizza-slice-3d.png" alt="" aria-hidden="true" />
         <aside class="side-sign">Pump fees in.<span>WBTC slices out.</span></aside>
         <aside class="chalk-sign">Baking freedom<br />one slice<br />at a time</aside>
 
@@ -1339,7 +1380,7 @@
           <article class="art-panel panel-pool">
             <h2>Pizza Pool</h2>
             <div class="pool-layout">
-              <img class="pizza-pool" src="assets/pizza-pool.png" alt="Pizza pool slices showing distributed and pending WBTC airdrops" />
+              <img class="pizza-pool" src="assets/pizza-pie-3d.png" alt="Glossy 3D pepperoni pizza representing the WBTC reward pool" />
               <div>
                 <div class="metric"><span>Total WBTC</span><strong id="pool">--</strong></div>
                 <div class="metric"><span>Creator Fees</span><strong id="creatorFees">--</strong></div>
