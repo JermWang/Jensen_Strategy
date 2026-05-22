@@ -33,7 +33,21 @@ These buttons run directly through Solana RPC and do not need third-party credit
 
 ## Continuous Epoch Automation
 
-Confirmed live GO stores an `epoch-automation` record and starts the epoch clock. Vercel cron calls `/api/epoch` every minute. The endpoint is idempotent: it returns `not_due` until the next displayed epoch end time, then runs one epoch and advances `nextEpochIndex`.
+Confirmed live GO stores an `epoch-automation` record and starts the epoch clock. An external cron service calls `/api/epoch` every minute. The endpoint is idempotent: it returns `not_due` until the next displayed epoch end time, then runs one epoch and advances `nextEpochIndex`.
+
+This project does not define Vercel Cron jobs in `vercel.json`. Vercel Hobby cron is limited to daily cadence, while the launch runner needs minute-level checks. Use cronjob.org or another external scheduler instead.
+
+cronjob.org setup:
+
+```text
+URL: https://www.btcpizzaanniversary.xyz/api/epoch?secret=<CRON_SECRET>
+Method: GET
+Schedule: every 1 minute
+Expected idle response: {"ok":true,"action":"run-due-epoch","result":{"status":"idle",...}}
+Expected armed response before due time: {"ok":true,"action":"run-due-epoch","result":{"status":"not_due",...}}
+```
+
+The endpoint also accepts `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret: <CRON_SECRET>`. Keep the raw secret out of commits, screenshots, and public cron logs.
 
 Each due epoch runs this sequence:
 

@@ -11,6 +11,7 @@ Object.assign(process.env, env);
 const require = createRequire(import.meta.url);
 const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction, runScheduledEpoch } = require("../lib/admin-control.js");
 const { feeReceipts, holderSnapshot, operationsSummary, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
+const { cronSecretMatches } = require("../lib/secret-auth.js");
 const port = Number(process.env.PORT || 4199);
 
 const types = {
@@ -51,13 +52,21 @@ function json(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
-function cronAuthorized(headers) {
+function firstParam(params, names) {
+  for (const name of names) {
+    const value = params.get(name);
+    if (value) return value;
+  }
+  return "";
+}
+
+function cronAuthorized(headers, searchParams) {
   if (isAdminAuthorized(headers)) return true;
-  const secret = process.env.CRON_SECRET || "";
-  if (!secret) return false;
   const authorization = headers.authorization || "";
   const bearer = authorization.toLowerCase().startsWith("bearer ") ? authorization.slice(7).trim() : "";
-  return bearer === secret || headers["x-cron-secret"] === secret;
+  return [bearer, headers["x-cron-secret"], firstParam(searchParams, ["secret", "cron_secret", "cronSecret", "token"])].some((candidate) =>
+    cronSecretMatches(candidate)
+  );
 }
 
 async function readJsonBody(request) {
@@ -124,8 +133,8 @@ createServer(async (request, response) => {
   }
 
   if (url.pathname === "/api/epoch") {
-    if (!cronAuthorized(request.headers)) {
-      json(response, 401, { ok: false, error: process.env.CRON_SECRET ? "Epoch cron authorization failed." : adminAuthError() });
+    if (!cronAuthorized(request.headers, url.searchParams)) {
+      json(response, 401, { ok: false, error: "Epoch cron authorization failed." });
       return;
     }
 

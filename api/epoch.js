@@ -1,4 +1,5 @@
-const { adminAuthError, isAdminAuthorized, runScheduledEpoch } = require("../lib/admin-control");
+const { isAdminAuthorized, runScheduledEpoch } = require("../lib/admin-control");
+const { cronSecretMatches } = require("../lib/secret-auth");
 const { sendJson } = require("../lib/vercel-api");
 
 function headerValue(headers, name) {
@@ -19,20 +20,43 @@ function parseBody(request) {
   }
 }
 
-function isCronAuthorized(headers) {
+function requestSearchParams(request) {
+  if (request.query && typeof request.query === "object") {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(request.query)) {
+      if (Array.isArray(value)) value.forEach((item) => params.append(key, item));
+      else if (value !== undefined && value !== null) params.set(key, value);
+    }
+    return params;
+  }
+  const host = headerValue(request.headers, "host") || "localhost";
+  return new URL(request.url || "/", `https://${host}`).searchParams;
+}
+
+function firstParam(params, names) {
+  for (const name of names) {
+    const value = params.get(name);
+    if (value) return value;
+  }
+  return "";
+}
+
+function isCronAuthorized(request) {
+  const headers = request.headers;
   if (isAdminAuthorized(headers)) return true;
-  const secret = process.env.CRON_SECRET || "";
-  if (!secret) return false;
   const authorization = headerValue(headers, "authorization");
   const bearer = authorization.toLowerCase().startsWith("bearer ") ? authorization.slice(7).trim() : "";
-  return bearer === secret || headerValue(headers, "x-cron-secret") === secret;
+  const params = requestSearchParams(request);
+  return [bearer, headerValue(headers, "x-cron-secret"), firstParam(params, ["secret", "cron_secret", "cronSecret", "token"])].some(
+    (candidate) => cronSecretMatches(candidate)
+  );
 }
 
 module.exports = async function handler(request, response) {
-  if (!isCronAuthorized(request.headers)) {
+  if (!isCronAuthorized(request)) {
     sendJson(response, 401, {
       ok: false,
-      error: process.env.CRON_SECRET ? "Epoch cron authorization failed." : adminAuthError()
+      error: "Epoch cron authorization failed."
     });
     return;
   }
@@ -45,8 +69,9 @@ module.exports = async function handler(request, response) {
 
   try {
     const body = request.method === "POST" ? parseBody(request) : {};
+    const params = requestSearchParams(request);
     const result = await runScheduledEpoch({
-      force: body.force === true || request.query?.force === "true",
+      force: body.force === true || params.get("force") === "true",
       source: body.source || "cron",
       payload: body.payload || {}
     });
