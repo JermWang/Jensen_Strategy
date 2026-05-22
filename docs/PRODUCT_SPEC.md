@@ -29,7 +29,7 @@ A Michael Saylor-inspired Bitcoin treasury parody whose Pump.fun creator fees ar
 
 - Connected wallet token balance.
 - Estimated holding weight.
-- Estimated holding-time score.
+- Estimated snapshot balance share.
 - Estimated next airdrop amount by epoch.
 - Distribution status and transaction links.
 - WBTC associated token account status.

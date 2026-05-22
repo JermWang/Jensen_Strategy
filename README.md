@@ -1,6 +1,6 @@
 # Bitcoin Pizza Strategy
 
-Public Solana dashboard and airdrop system for a Michael Saylor-inspired Bitcoin treasury parody token whose Pump.fun creator fees are periodically converted into wrapped BTC on Solana and automatically distributed to holders based on holding weight and holding time.
+Public Solana dashboard and airdrop system for a Michael Saylor-inspired Bitcoin treasury parody token whose Pump.fun creator fees are periodically converted into wrapped BTC on Solana and automatically distributed to holders by token balance at the epoch snapshot.
 
 This repository is intentionally structured as a full project brief plus implementation scaffold. It should be treated as the source of truth before smart contract development begins.
 
@@ -38,6 +38,23 @@ The static preview includes a password-gated admin operations console at `/admin
 Built-in controls validate config, refresh fee receipts, scan holders directly through Solana RPC, check the WBTC vault, create holder snapshots, simulate weighted WBTC distributions, record receipts, lock manifests, and prepare idempotent distribution batches. Confirmed `Official Live GO` now also arms the continuous epoch runner: an external cron service calls `/api/epoch`, which only runs when the displayed epoch time is due, then claims creator fees, buys WBTC, snapshots holders for `PUBLIC_TOKEN_MINT`, distributes to holders by weighted balance, and records screenshot evidence through `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL`.
 
 See `docs/ADMIN_OPERATIONS.md` and `.env.example` for the required `ADMIN_PASSWORD`, `CRON_SECRET`, RPC holder fallback, signing keys, and optional screenshot/per-action webhook variables.
+
+### cron-job.org setup
+
+Use one fixed external heartbeat. The database decides whether the current epoch is due.
+
+```text
+URL: https://www.btcpizzaanniversary.xyz/api/cron/epoch-tick
+Method: POST
+Headers:
+  Authorization: Bearer <existing admin or cron secret>
+  Content-Type: application/json
+Body:
+  { "source": "cron-job.org", "task": "epoch-tick" }
+Frequency: every 1 minute
+```
+
+Do not add Vercel Cron jobs. The endpoint is lock-protected, idempotent, and cheap when no epoch is due.
 
 ## MVP Recommendation
 

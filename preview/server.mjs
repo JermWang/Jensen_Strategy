@@ -12,6 +12,9 @@ const require = createRequire(import.meta.url);
 const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction, runScheduledEpoch } = require("../lib/admin-control.js");
 const { feeReceipts, holderSnapshot, operationsSummary, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
 const { cronSecretMatches } = require("../lib/secret-auth.js");
+const { epochTick, isCronAuthorized: rewardCronAuthorized } = require("../lib/rewards/epochs.js");
+const { holdersPayload, receiptsPayload, statusPayload } = require("../lib/rewards/snapshotCache.js");
+const { lookupWallet } = require("../lib/rewards/ticketLookup.js");
 const port = Number(process.env.PORT || 4199);
 
 const types = {
@@ -100,6 +103,31 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (url.pathname === "/api/rewards/status") {
+    response.setHeader("cache-control", "s-maxage=10, stale-while-revalidate=30");
+    json(response, 200, await statusPayload());
+    return;
+  }
+
+  if (url.pathname === "/api/rewards/holders") {
+    response.setHeader("cache-control", "s-maxage=10, stale-while-revalidate=30");
+    json(response, 200, await holdersPayload(url.searchParams.get("wallet") || ""));
+    return;
+  }
+
+  if (url.pathname === "/api/rewards/receipts") {
+    response.setHeader("cache-control", "s-maxage=10, stale-while-revalidate=30");
+    json(response, 200, await receiptsPayload());
+    return;
+  }
+
+  if (url.pathname === "/api/rewards/wallet" || url.pathname.startsWith("/api/rewards/wallet/")) {
+    response.setHeader("cache-control", "s-maxage=10, stale-while-revalidate=30");
+    const wallet = url.searchParams.get("wallet") || decodeURIComponent(url.pathname.replace("/api/rewards/wallet/", ""));
+    json(response, 200, await lookupWallet(wallet));
+    return;
+  }
+
   if (url.pathname === "/api/holders") {
     json(response, 200, await holderSnapshot(url.searchParams.get("wallet"), env));
     return;
@@ -154,6 +182,21 @@ createServer(async (request, response) => {
     } catch (error) {
       json(response, error.statusCode || 500, { ok: false, error: error.message || "Epoch runner failed." });
     }
+    return;
+  }
+
+  if (url.pathname === "/api/cron/epoch-tick") {
+    if (request.method !== "POST") {
+      response.setHeader("allow", "POST");
+      json(response, 405, { ok: false, error: "Method not allowed." });
+      return;
+    }
+    if (!rewardCronAuthorized(request.headers)) {
+      json(response, 401, { ok: false, error: "Cron authorization failed." });
+      return;
+    }
+    const body = await readJsonBody(request);
+    json(response, 200, await epochTick({ source: body.source || "cron-job.org", task: body.task || "epoch-tick" }));
     return;
   }
 

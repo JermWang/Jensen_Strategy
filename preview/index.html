@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bitcoin Pizza Strategy - Live Dashboard</title>
     <meta name="description" content="Bitcoin Pizza Strategy is a Saylor-style Bitcoin treasury parody tracking Pump.fun creator fees, WBTC buys, holder draw eligibility, and onchain airdrop receipts." />
-    <meta name="theme-color" content="#05060a" />
+    <meta name="theme-color" content="#f56600" />
     <link rel="icon" type="image/png" href="/assets/pizza-slice-favicon-256.png" />
     <link rel="apple-touch-icon" href="/assets/pizza-slice-favicon-256.png" />
     <meta property="og:type" content="website" />
@@ -19,22 +19,23 @@
     <meta name="twitter:image" content="/assets/btc-strategy-banner.jpg" />
     <style>
       :root {
-        color-scheme: dark;
-        --cream: #fff2be;
-        --gold: #f7b733;
-        --orange: #ef6f22;
-        --red: #e24731;
-        --mint: #51f4a9;
-        --cyan: #55dfff;
-        --purple: #c56bff;
-        --ink: #08090f;
-        --panel: rgba(7, 8, 12, 0.88);
-        --glass: rgba(8, 10, 16, 0.68);
-        --glass-strong: rgba(8, 10, 16, 0.82);
-        --line: rgba(255, 242, 190, 0.16);
-        --soft: #b9b7c8;
-        --font-display: "Rockwell Extra Bold", Rockwell, "Bookman Old Style", Georgia, serif;
-        --font-body: "Aptos", "Segoe UI", Arial, sans-serif;
+        color-scheme: light;
+        --cream: #fff4df;
+        --paper: #fffaf0;
+        --gold: #ff7a00;
+        --orange: #f56600;
+        --red: #d93614;
+        --mint: #168a44;
+        --cyan: #0d5f75;
+        --purple: #802f00;
+        --ink: #16100b;
+        --panel: rgba(255, 250, 240, 0.82);
+        --glass: rgba(255, 250, 240, 0.68);
+        --glass-strong: rgba(255, 250, 240, 0.86);
+        --line: rgba(95, 46, 13, 0.16);
+        --soft: #715f50;
+        --font-display: Impact, "Arial Black", "Franklin Gothic Heavy", "Segoe UI Black", sans-serif;
+        --font-body: "Arial Narrow", "Aptos", "Segoe UI", Arial, sans-serif;
       }
 
       * {
@@ -45,8 +46,8 @@
       body {
         margin: 0;
         min-height: 100%;
-        background: #05060a;
-        color: var(--cream);
+        background: #fff4df;
+        color: var(--ink);
         font-family: var(--font-body);
       }
 
@@ -67,7 +68,7 @@
       .page {
         min-height: 100vh;
         padding: 0;
-        background: #05060a;
+        background: #fff4df;
       }
 
       .stage {
@@ -76,7 +77,9 @@
         min-height: 100vh;
         margin: 0 auto;
         overflow: hidden;
-        background: #0b0b10;
+        background:
+          linear-gradient(180deg, rgba(255, 250, 240, 0.95), rgba(255, 244, 223, 0.88) 58%, #f56600 58%, #f56600 64%, #fff4df 64%),
+          #fff4df;
         box-shadow: none;
       }
 
@@ -84,10 +87,29 @@
         position: absolute;
         inset: 0;
         background-image:
-          linear-gradient(to bottom, rgba(5, 6, 10, 0.9) 0 112px, rgba(0, 0, 0, 0.04) 112px 46%, rgba(5, 6, 10, 0.28) 59%, rgba(5, 6, 10, 0.88) 100%),
-          url("assets/parlor-bg.png");
-        background-size: cover;
-        background-position: center top;
+          linear-gradient(90deg, rgba(245, 102, 0, 0.07) 0 1px, transparent 1px 84px),
+          linear-gradient(rgba(245, 102, 0, 0.05) 0 1px, transparent 1px 84px),
+          url("assets/btc-strategy-pizza-graphic.jpg");
+        background-size: auto, auto, min(760px, 52vw) auto;
+        background-repeat: repeat, repeat, no-repeat;
+        background-position: 0 0, 0 0, right 108px top 120px;
+        opacity: 1;
+      }
+
+      .parlor::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 92px;
+        background:
+          linear-gradient(45deg, #fff4df 25%, transparent 25% 75%, #fff4df 75%),
+          linear-gradient(45deg, #fff4df 25%, transparent 25% 75%, #fff4df 75%),
+          #f56600;
+        background-size: 42px 42px;
+        background-position: 0 0, 21px 21px;
+        opacity: 0.32;
       }
 
       .top {
@@ -100,9 +122,10 @@
         gap: 20px;
         min-height: 76px;
         padding: 0 32px;
-        border-bottom: 3px solid rgba(247, 183, 51, 0.28);
-        background: rgba(4, 6, 10, 0.92);
-        box-shadow: 0 8px 0 rgba(0, 0, 0, 0.34);
+        border-bottom: 1px solid rgba(95, 46, 13, 0.12);
+        background: rgba(255, 250, 240, 0.78);
+        box-shadow: 0 18px 48px rgba(95, 46, 13, 0.12);
+        backdrop-filter: blur(18px) saturate(1.12);
       }
 
       .market-ticker {
@@ -115,8 +138,8 @@
         display: flex;
         align-items: center;
         overflow: hidden;
-        border-bottom: 1px solid rgba(247, 183, 51, 0.25);
-        background: rgba(5, 6, 10, 0.86);
+        border-bottom: 1px solid rgba(245, 102, 0, 0.22);
+        background: rgba(245, 102, 0, 0.92);
         backdrop-filter: blur(14px);
         box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
       }
@@ -140,7 +163,7 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        color: #d8d6e6;
+        color: #fff4df;
         font-size: 12px;
         font-weight: 1000;
         text-transform: uppercase;
@@ -151,7 +174,7 @@
       }
 
       .ticker-item .price {
-        color: var(--cream);
+        color: #fff;
       }
 
       .ticker-item .change.up {
@@ -186,14 +209,14 @@
         border-radius: 999px;
         background:
           radial-gradient(circle at 52% 48%, rgba(255, 183, 53, 0.18), transparent 66%),
-          #08090f url("assets/pizza-slice-3d.png") center / 148% auto no-repeat;
+          #fff4df url("assets/pizza-slice-3d.png") center / 148% auto no-repeat;
         box-shadow:
           0 0 0 2px rgba(5, 6, 10, 0.9),
           0 0 18px rgba(247, 183, 51, 0.22);
       }
 
       .wordmark {
-        color: var(--gold);
+        color: var(--orange);
         font-family: var(--font-display);
         font-size: clamp(18px, 1.55vw, 27px);
         font-weight: 800;
@@ -210,14 +233,23 @@
       }
 
       .menu-toggle {
-        display: none;
-        position: relative;
+        display: inline-grid !important;
+        position: fixed;
+        top: 17px;
+        right: 14px;
         width: 46px;
         height: 42px;
-        border: 3px solid rgba(247, 183, 51, 0.34);
-        background: rgba(4, 6, 10, 0.82);
-        color: var(--gold);
-        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(245, 102, 0, 0.32);
+        border-radius: 14px;
+        background: rgba(255, 250, 240, 0.78);
+        color: var(--orange);
+        box-shadow: 0 10px 24px rgba(95, 46, 13, 0.1);
+      }
+
+      @media (min-width: 1101px) {
+        .menu-toggle {
+          display: none !important;
+        }
       }
 
       .menu-toggle span {
@@ -264,14 +296,15 @@
         align-items: center;
         justify-content: center;
         min-height: 40px;
-        border: 3px solid rgba(247, 183, 51, 0.1);
-        background: rgba(23, 21, 30, 0.78);
+        border: 1px solid rgba(95, 46, 13, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 250, 240, 0.7);
         color: var(--soft);
         padding: 0 14px;
         font-size: 12px;
         font-weight: 1000;
         text-transform: uppercase;
-        box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
+        box-shadow: 0 10px 28px rgba(95, 46, 13, 0.08);
         transition:
           transform 140ms ease,
           color 140ms ease,
@@ -283,32 +316,30 @@
 
       .nav a.active,
       .button.primary {
-        background: var(--gold);
-        color: #24120a;
-        border-color: #05060a;
+        background: var(--orange);
+        color: #fff;
+        border-color: var(--orange);
       }
 
       .nav a:hover,
       .button:hover {
         transform: translateY(-2px);
         border-color: rgba(247, 183, 51, 0.72);
-        color: var(--cream);
+        color: var(--ink);
         background:
-          linear-gradient(145deg, rgba(247, 183, 51, 0.22), rgba(85, 223, 255, 0.08)),
-          rgba(23, 21, 30, 0.9);
+          linear-gradient(145deg, rgba(245, 102, 0, 0.16), rgba(255, 250, 240, 0.9)),
+          rgba(255, 250, 240, 0.92);
         box-shadow:
-          4px 6px 0 rgba(0, 0, 0, 0.42),
-          0 0 22px rgba(247, 183, 51, 0.16);
+          0 14px 32px rgba(245, 102, 0, 0.16);
         filter: brightness(1.08);
       }
 
       .nav a.active:hover,
       .button.primary:hover {
-        color: #1d1008;
-        background: #ffc84b;
+        color: #fff;
+        background: #ff7a00;
         box-shadow:
-          4px 6px 0 rgba(0, 0, 0, 0.42),
-          0 0 26px rgba(247, 183, 51, 0.3);
+          0 14px 34px rgba(245, 102, 0, 0.22);
       }
 
       .nav a:active,
@@ -359,9 +390,9 @@
         border-width: 1px;
         border-radius: 999px;
         background:
-          linear-gradient(145deg, rgba(255, 242, 190, 0.1), rgba(255, 242, 190, 0.03)),
-          rgba(8, 10, 16, 0.68);
-        color: var(--cream);
+          linear-gradient(145deg, rgba(255, 255, 255, 0.55), rgba(255, 250, 240, 0.2)),
+          rgba(255, 250, 240, 0.72);
+        color: var(--ink);
         cursor: pointer;
         min-width: 142px;
         backdrop-filter: blur(14px) saturate(1.15);
@@ -403,26 +434,24 @@
       .hero-copy {
         position: absolute;
         z-index: 3;
-        left: 14.2%;
-        right: 13.8%;
-        top: 12.1%;
-        width: auto;
+        left: 4%;
+        right: auto;
+        top: 148px;
+        width: min(520px, 43vw);
         margin: 0;
-        padding: 6px 24px 11px;
-        text-align: center;
-        border: 6px solid #40160d;
+        padding: 0;
+        text-align: left;
+        border: 0;
         background:
-          linear-gradient(180deg, rgba(124, 45, 21, 0.98), rgba(70, 20, 12, 0.98));
-        box-shadow:
-          0 0 0 4px #120807,
-          10px 10px 0 rgba(0, 0, 0, 0.45);
+          transparent;
+        box-shadow: none;
       }
 
       .hero-copy h1 {
         margin: 0;
-        color: var(--gold);
+        color: var(--orange);
         font-family: var(--font-display);
-        font-size: clamp(42px, 5.9vw, 104px);
+        font-size: clamp(52px, 6.7vw, 112px);
         font-weight: 800;
         line-height: 0.9;
         text-transform: uppercase;
@@ -434,9 +463,9 @@
         width: min(720px, 82%);
         margin: 12px auto 0;
         padding: 5px 14px 7px;
-        border: 4px solid #09180f;
-        background: #13733f;
-        color: #d9ffb5;
+        border: 0;
+        background: var(--orange);
+        color: #fff;
         font-size: clamp(15px, 1.6vw, 26px);
         line-height: 1;
         font-weight: 1000;
@@ -455,7 +484,7 @@
         gap: 14px;
         left: 12.6%;
         right: 7.6%;
-        top: clamp(328px, 47.5%, 51.4%);
+        top: clamp(372px, 56%, 520px);
         margin: 0;
       }
 
@@ -464,13 +493,13 @@
         min-height: 216px;
         padding: 54px 28px 24px;
         border: 1px solid rgba(255, 242, 190, 0.2);
-        border-radius: 18px;
+        border-radius: 16px;
         background:
-          linear-gradient(145deg, rgba(255, 242, 190, 0.09), rgba(255, 242, 190, 0.02) 36%),
+          linear-gradient(145deg, rgba(255, 255, 255, 0.65), rgba(255, 250, 240, 0.22) 36%),
           var(--glass);
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.12),
-          0 16px 34px rgba(0, 0, 0, 0.45);
+          0 18px 44px rgba(95, 46, 13, 0.16);
         backdrop-filter: blur(18px) saturate(1.2);
         overflow: hidden;
       }
@@ -491,7 +520,7 @@
       }
 
       .panel-pool {
-        border-color: rgba(226, 71, 49, 0.45);
+        border-color: rgba(245, 102, 0, 0.26);
         background:
           radial-gradient(circle at 28% 44%, rgba(247, 183, 51, 0.23), transparent 39%),
           linear-gradient(145deg, rgba(226, 71, 49, 0.12), rgba(255, 242, 190, 0.025) 46%),
@@ -499,7 +528,7 @@
       }
 
       .panel-next {
-        border-color: rgba(85, 223, 255, 0.42);
+        border-color: rgba(245, 102, 0, 0.26);
         display: grid;
         grid-template-columns: 1fr;
         gap: 11px;
@@ -512,7 +541,7 @@
       }
 
       .panel-ticket {
-        border-color: rgba(197, 107, 255, 0.52);
+        border-color: rgba(245, 102, 0, 0.26);
       }
 
       .art-panel h2 {
@@ -521,7 +550,7 @@
         top: 22px;
         z-index: 2;
         margin: 0;
-        color: var(--gold);
+        color: var(--orange);
         font-size: clamp(12px, 1.05vw, 17px);
         line-height: 1;
         text-transform: uppercase;
@@ -575,7 +604,7 @@
       }
 
       .countdown {
-        color: var(--cyan);
+        color: var(--orange);
         font-size: clamp(38px, 4.1vw, 68px);
         font-weight: 1000;
         line-height: 0.9;
@@ -598,7 +627,7 @@
         width: var(--countdown-progress, 0%);
         height: 100%;
         border-radius: inherit;
-        background: linear-gradient(90deg, var(--cyan), var(--mint));
+        background: linear-gradient(90deg, var(--orange), #ffb000);
         transition: width 240ms ease;
       }
 
@@ -912,9 +941,9 @@
 
       .side-sign,
       .chalk-sign {
+        display: none !important;
         position: absolute;
         z-index: 2;
-        display: grid;
         place-items: center;
         border: 5px solid #05060a;
         background: rgba(8, 9, 13, 0.82);
@@ -974,7 +1003,7 @@
         border-radius: 18px;
         background:
           linear-gradient(145deg, rgba(255, 242, 190, 0.08), rgba(255, 242, 190, 0.02)),
-          rgba(8, 10, 16, 0.72);
+          rgba(255, 250, 240, 0.76);
         padding: 20px;
         box-shadow: 0 16px 34px rgba(0, 0, 0, 0.34);
         backdrop-filter: blur(18px) saturate(1.18);
@@ -997,8 +1026,8 @@
 
       .info-pages {
         background:
-          linear-gradient(180deg, #05060a, #0d0807 42%, #05060a);
-        color: var(--cream);
+          linear-gradient(180deg, #fff4df, #fffaf0 42%, #fff4df);
+        color: var(--ink);
         padding: 0 24px 64px;
       }
 
@@ -1010,17 +1039,17 @@
         border-radius: 22px;
         background:
           linear-gradient(145deg, rgba(255, 242, 190, 0.08), rgba(255, 242, 190, 0.015)),
-          rgba(9, 10, 15, 0.76);
+          rgba(255, 250, 240, 0.78);
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.1),
-          0 18px 48px rgba(0, 0, 0, 0.36);
+          0 18px 48px rgba(95, 46, 13, 0.12);
         backdrop-filter: blur(20px) saturate(1.2);
         scroll-margin-top: 92px;
       }
 
       .info-section h2 {
         margin: 0 0 16px;
-        color: var(--gold);
+        color: var(--orange);
         font-family: var(--font-display);
         font-size: 24px;
         font-weight: 800;
@@ -1037,7 +1066,7 @@
       .info-item {
         border: 1px solid rgba(255, 242, 190, 0.14);
         border-radius: 16px;
-        background: rgba(255, 242, 190, 0.06);
+        background: rgba(255, 255, 255, 0.48);
         padding: 16px;
       }
 
@@ -1051,7 +1080,7 @@
 
       .info-item span {
         display: block;
-        color: #d8d6e6;
+        color: var(--soft);
         font-size: 13px;
         line-height: 1.4;
         font-weight: 800;
@@ -1066,7 +1095,7 @@
           rgba(8, 10, 16, 0.72);
         box-shadow:
           inset 0 1px 0 rgba(255, 255, 255, 0.08),
-          0 16px 34px rgba(0, 0, 0, 0.32);
+          0 16px 34px rgba(95, 46, 13, 0.12);
         overflow: hidden;
       }
 
@@ -1082,7 +1111,7 @@
         border-radius: 18px;
         background:
           linear-gradient(145deg, rgba(247, 183, 51, 0.09), rgba(85, 223, 255, 0.04)),
-          rgba(8, 10, 16, 0.68);
+          rgba(255, 250, 240, 0.72);
         padding: 18px;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
       }
@@ -1157,7 +1186,7 @@
         grid-template-columns: 22px 1fr;
         gap: 10px;
         align-items: start;
-        color: #d8d6e6;
+        color: var(--soft);
         font-size: 13px;
         line-height: 1.35;
         font-weight: 800;
@@ -1233,8 +1262,8 @@
         min-height: 42px;
         border: 1px solid rgba(255, 242, 190, 0.22);
         border-radius: 12px;
-        background: rgba(4, 6, 10, 0.68);
-        color: var(--cream);
+        background: rgba(255, 255, 255, 0.58);
+        color: var(--ink);
         padding: 0 14px;
         font: inherit;
         font-size: 13px;
@@ -1255,7 +1284,7 @@
       }
 
       .holder-stat {
-        background: rgba(8, 10, 16, 0.72);
+        background: rgba(255, 250, 240, 0.8);
         padding: 14px 16px;
       }
 
@@ -1427,12 +1456,13 @@
         }
 
         .wordmark {
-          font-size: clamp(16px, 5vw, 22px);
+          font-size: clamp(14px, 4.2vw, 18px);
         }
 
         .menu-toggle {
-          display: inline-grid;
+          display: inline-grid !important;
           place-items: center;
+          position: fixed;
           flex: 0 0 auto;
           grid-column: 2;
           justify-self: end;
@@ -1642,7 +1672,7 @@
             <h2>Ticket Check</h2>
             <strong class="ticket-status" id="ticketStatus">Search</strong>
             <div class="ticket-list">
-              <div class="ticket-row"><b>Wallet Score</b><span>Time + weight</span><strong id="score">--</strong></div>
+              <div class="ticket-row"><b>Wallet Balance</b><span>Snapshot share</span><strong id="score">--</strong></div>
               <div class="ticket-row"><b>Round Rank</b><span>Current list</span><strong id="holderRank">--</strong></div>
               <div class="ticket-row"><b>Cutoff</b><span>Score needed</span><strong id="cutoffScore">--</strong></div>
               <div class="ticket-row"><b>Est. WBTC</b><span>Projected slice</span><strong id="estimate">--</strong></div>
@@ -1669,8 +1699,8 @@
         <section class="info-section" id="holders">
           <h2>Holders</h2>
           <div class="info-grid">
-            <div class="info-item"><b>Draw Score</b><span>Every wallet earns weighted entries from balance size and verified holding time.</span></div>
-            <div class="info-item"><b>Visible Cutoff</b><span>The round shows the score needed to make the airdrop list before it closes.</span></div>
+            <div class="info-item"><b>Reward Share</b><span>Every wallet's slice is based on its share of the token supply held at the epoch snapshot.</span></div>
+            <div class="info-item"><b>Visible Cutoff</b><span>The board shows the balance needed to make the top 128 snapshot.</span></div>
             <div class="info-item"><b>Proof</b><span>Snapshots, formula inputs, manifest hash, and transfer txs stay public.</span></div>
           </div>
           <div class="draw-board">
@@ -1680,14 +1710,14 @@
               <div class="draw-numbers">
                 <div class="draw-number"><span>Rank</span><strong id="drawRank">--</strong></div>
                 <div class="draw-number"><span>Above cutoff</span><strong id="drawEdge">--</strong></div>
-                <div class="draw-number"><span>Round odds</span><strong id="drawOdds">--</strong></div>
+                <div class="draw-number"><span>Snapshot status</span><strong id="drawOdds">--</strong></div>
               </div>
             </div>
             <div class="draw-card">
-              <h3>How to climb</h3>
+              <h3>How to get a bigger slice</h3>
               <ul class="boost-list">
-                <li><span>1</span><div><b>Hold longer.</b> Time weight keeps compounding while the wallet stays in.</div></li>
-                <li><span>2</span><div><b>Hold more.</b> Balance weight lifts your score for the next snapshot.</div></li>
+                <li><span>1</span><div><b>Hold more.</b> Reward share is wallet balance / total eligible snapshot balance.</div></li>
+                <li><span>2</span><div><b>Make the cut.</b> The top 128 wallets at snapshot time are included first.</div></li>
                 <li><span>3</span><div><b>Stay ready.</b> WBTC ATA readiness keeps eligible wallets from getting skipped.</div></li>
               </ul>
             </div>
@@ -1696,7 +1726,7 @@
             <div class="draw-card">
               <h3>Fairness Layer</h3>
               <ul class="fair-list">
-                <li><span>✓</span><div><b>Same formula for everyone.</b> Score = holding weight + holding-time multiplier.</div></li>
+                <li><span>✓</span><div><b>Same formula for everyone.</b> Reward share = wallet balance / total eligible snapshot balance.</div></li>
                 <li><span>✓</span><div><b>Public snapshot.</b> Round manifests prove the eligible wallet set once the holder indexer is configured.</div></li>
                 <li><span>✓</span><div><b>Onchain outcome.</b> Final WBTC transfers become clickable Solscan receipts when real batch signatures exist.</div></li>
               </ul>
@@ -1704,9 +1734,9 @@
             <div class="draw-card">
               <h3>Round Rules</h3>
               <ul class="fair-list">
-                <li><span>•</span><div>Top scored wallets make the next WBTC drop until the round cap is filled.</div></li>
-                <li><span>•</span><div>Payout size follows score share, so higher rank means a larger slice.</div></li>
-                <li><span>•</span><div>If you miss this round, your wallet can climb before the next one.</div></li>
+                <li><span>•</span><div>Top balance wallets make the next WBTC drop until the round cap is filled.</div></li>
+                <li><span>•</span><div>Payout size follows token balance share, so a bigger snapshot balance means a larger slice.</div></li>
+                <li><span>•</span><div>If you miss this round, your wallet can qualify before the next snapshot.</div></li>
               </ul>
             </div>
           </div>
@@ -1714,14 +1744,14 @@
             <div class="holder-toolbar">
               <div>
                 <h3>Current Draw Board</h3>
-                <span>All eligible wallets for this epoch, ranked by score with projected WBTC and weight details.</span>
+                <span>All eligible wallets for this epoch, ranked by token balance with projected WBTC slices.</span>
                 <strong class="holder-source" id="holderSource">Loading holders</strong>
               </div>
               <input class="holder-search" id="holderSearch" type="search" placeholder="Search wallet or SOL domain" autocomplete="off" />
             </div>
             <div class="holder-stats">
               <div class="holder-stat"><span>Round cap</span><strong id="roundCap">--</strong></div>
-              <div class="holder-stat"><span>Cutoff score</span><strong id="holderCutoff">--</strong></div>
+              <div class="holder-stat"><span>Cutoff balance</span><strong id="holderCutoff">--</strong></div>
               <div class="holder-stat"><span>Eligible shown</span><strong id="eligibleShown">--</strong></div>
               <div class="holder-stat"><span>Snapshot</span><strong id="snapshotAge">--</strong></div>
             </div>
@@ -1754,6 +1784,8 @@
         config: null,
         holderSnapshot: null,
         feeReceipts: [],
+        rewardReceipts: [],
+        rewardsStatus: null,
         feeReceiptStatus: null,
         operations: null,
         wbtcPoolBalance: 0,
@@ -1902,6 +1934,26 @@
       }
 
       function distributionCycle(nowMs = Date.now()) {
+        const rewardEpoch = state.rewardsStatus?.current_epoch;
+        const rewardEndMs = Date.parse(rewardEpoch?.ends_at || "");
+        if (rewardEpoch && Number.isFinite(rewardEndMs)) {
+          const remaining = Math.max(0, Math.ceil((rewardEndMs - nowMs) / 1000));
+          const interval = Math.max(1, Number(rewardEpoch.interval_seconds || 180));
+          const elapsed = Math.max(0, interval - remaining);
+          return {
+            active: true,
+            schedule: distributionSchedule(Number(rewardEpoch.epoch_index || 0)),
+            scheduleIndex: Number(rewardEpoch.epoch_index || 0),
+            epochIndex: Number(rewardEpoch.epoch_index || 0),
+            interval,
+            label: formatDurationLabel(interval),
+            holderCap: Number(rewardEpoch.holder_cap || 128),
+            status: rewardEpoch.status,
+            stage: rewardEpoch.stage,
+            remaining,
+            progress: Math.max(0, Math.min(1, elapsed / interval))
+          };
+        }
         const automation = state.operations?.automation;
         const automationEndMs = Date.parse(automation?.nextEpochEndsAt || "");
         if (automation?.active && Number.isFinite(automationEndMs)) {
@@ -1978,6 +2030,7 @@
       }
 
       function effectiveHolderCap(cycle) {
+        if (state.rewardsStatus?.current_epoch) return cycle.holderCap;
         const snapshot = state.holderSnapshot;
         const total = Number(snapshot?.totalHolderCount ?? snapshot?.holders?.length);
         if (Number.isFinite(total) && total >= 0) return Math.min(cycle.holderCap, total);
@@ -1988,11 +2041,11 @@
         const cycle = distributionCycle();
         state.cycle = cycle;
         state.remaining = cycle.remaining;
-        countdownEl.textContent = cycle.active ? formatTime(state.remaining) : "Manual";
+        countdownEl.textContent = cycle.active ? formatTime(state.remaining) : "03:00";
         countdownProgressEl.style.setProperty("--countdown-progress", `${Math.round(cycle.progress * 100)}%`);
-        intervalEl.textContent = cycle.active ? cycle.label : "Manual launch";
+        intervalEl.textContent = cycle.label || "3 minutes";
         epochHolderCapEl.textContent = effectiveHolderCap(cycle).toLocaleString();
-        cycleStatusEl.textContent = cycle.active ? `Epoch ${cycle.epochIndex + 1} active` : "Awaiting admin GO";
+        cycleStatusEl.textContent = cycle.stage || (cycle.active ? `Epoch ${cycle.epochIndex + 1} active` : "Baking");
         renderSliceSchedule(cycle);
       }
 
@@ -2108,7 +2161,9 @@
 
         syncCountdown();
 
-        if (automation?.active) {
+        if (state.rewardsStatus?.current_epoch) {
+          syncCountdown();
+        } else if (automation?.active) {
           cycleStatusEl.textContent = `Epoch ${Number(automation.nextEpochIndex || 0) + 1} armed`;
         } else if (automation?.status === "blocked") {
           cycleStatusEl.textContent = "Blocked";
@@ -2122,10 +2177,10 @@
       function renderTicket(current) {
         const isEligible = current?.status === "eligible" || current?.eligible === true;
         const query = holderSearchEl.value.trim();
-        scoreEl.textContent = current?.score?.toLocaleString?.() || "--";
+        scoreEl.textContent = current?.balanceLabel || current?.balance || current?.score?.toLocaleString?.() || "--";
         holderRankEl.textContent = current?.rank ? `#${current.rank}` : "--";
         cutoffScoreEl.textContent = current?.cutoffScore?.toLocaleString?.() || "--";
-        estimateEl.textContent = Number.isFinite(Number(current?.estimatedWbtc)) ? Number(current.estimatedWbtc).toFixed(8) : "--";
+        estimateEl.textContent = current?.projected_reward ? `${current.projected_reward} WBTC` : Number.isFinite(Number(current?.estimatedWbtc)) ? Number(current.estimatedWbtc).toFixed(8) : "--";
         ticketStatusEl.textContent = current ? (isEligible ? "Eligible" : "Not in cut") : query ? "No match" : "Search";
         ticketStatusEl.style.color = current && isEligible ? "var(--gold)" : "#ff6b58";
         ticketStatusEl.style.borderColor = current && isEligible ? "rgba(81, 244, 169, 0.42)" : "rgba(255, 107, 88, 0.5)";
@@ -2174,16 +2229,12 @@
       }
 
       function weightDetails(holder) {
-        const score = formatCompactNumber(holder.score);
         const balance = holder.balanceLabel || formatCompactNumber(holder.balanceUi);
-        const holdTime = formatHoldingTime(holder);
-        const multiplier = Number(holder.timeMultiplier);
-        const multiplierLabel = Number.isFinite(multiplier) && multiplier > 0 ? `${multiplier.toFixed(2)}x` : "--";
+        const reward = holder.projected_reward || holder.reward_ui || holder.estimatedWbtc;
         return [
-          `Score ${score}`,
           `Bal ${balance}`,
-          `Held ${holdTime}`,
-          `Time ${multiplierLabel}`
+          `Share ${formatCompactNumber(holder.score)}`,
+          `Reward ${reward || "--"}`
         ];
       }
 
@@ -2191,6 +2242,7 @@
         const eligible = holder.status === "eligible" || holder.eligible === true;
         if (!eligible) return "0.00000000 WBTC";
 
+        if (holder.projected_reward) return `${holder.projected_reward} WBTC`;
         if (state.wbtcPoolBalance === null) return "Pending WBTC";
         const pool = Number(state.wbtcPoolBalance);
         const totalScore = eligibleScoreTotal(snapshot);
@@ -2220,7 +2272,7 @@
 
         holderTableEl.innerHTML = `
           <div class="holder-row header">
-            <span>Rank</span><span>Eligible wallet and weight</span><span>Est. epoch WBTC</span>
+            <span>Rank</span><span>Eligible wallet and balance</span><span>Est. epoch WBTC</span>
           </div>
           ${
             visible.length
@@ -2259,7 +2311,7 @@
         drawRankEl.textContent = current.rank ? `#${current.rank}` : "--";
         drawEdgeEl.textContent = Number.isFinite(Number(current.cutoffDelta)) ? `${Number(current.cutoffDelta) >= 0 ? "+" : ""}${Number(current.cutoffDelta).toLocaleString()}` : "--";
         drawEdgeEl.style.color = Number(current.cutoffDelta) >= 0 ? "var(--gold)" : "#ff6b58";
-        drawOddsEl.textContent = current.oddsLabel || "--";
+        drawOddsEl.textContent = current.oddsLabel || current.transfer_status || "--";
       }
 
       function formatUsd(value) {
@@ -2302,17 +2354,25 @@
       function renderReceipts() {
         receiptRow.querySelectorAll(".receipt").forEach((node) => node.remove());
         const proofs = operationProofs();
+        const rewardProofs = state.rewardReceipts.map((receipt) => ({
+          status: receipt.status,
+          time: receipt.created_at ? new Date(receipt.created_at).toLocaleString() : "",
+          signature: receipt.signature,
+          label: receipt.signature ? `TX: ${shortAddress(receipt.signature)} view` : `${receipt.amount_ui || receipt.amount_raw || "0"} WBTC`
+        }));
         const chainProofs = state.feeReceipts.map((receipt) => ({
           status: receipt.status,
           time: receipt.blockTime ? new Date(receipt.blockTime * 1000).toLocaleString() : `Slot ${receipt.slot}`,
           signature: receipt.signature,
           label: receipt.signature ? `TX: ${shortAddress(receipt.signature)} view` : "Solana receipt"
         }));
-        const cards = [...proofs, ...chainProofs].slice(0, 5);
+        const cards = [...rewardProofs, ...proofs, ...chainProofs].slice(0, 5);
 
         if (!cards.length) {
           receiptEmptyEl.style.display = "grid";
-          receiptEmptyEl.textContent = state.feeReceiptStatus?.reason || "Fee wallet is being watched. Confirmed fee receipts will appear here as soon as Solana returns them.";
+          receiptEmptyEl.textContent = state.rewardsStatus?.current_epoch?.status === "snapshotting"
+            ? "Cutting slices. Holder board will update after the snapshot finalizes."
+            : "First holder snapshot begins when the first reward epoch closes.";
           return;
         }
 
@@ -2341,43 +2401,22 @@
 
       async function loadChainData() {
         if (!state.config) await loadConfig();
-        const operationsPromise = loadOperationsSummary();
-        const holderSnapshotPromise = loadHolderSnapshot();
-
-        try {
-          const response = await fetch("/api/fee-receipts", { cache: "no-store" });
-          const body = await response.json();
-          state.feeReceiptStatus = body;
-          state.feeReceipts = body.receipts || [];
-          creatorFeesEl.textContent = body.configured ? formatAmount(body.totalSolAndWsolBalance ?? body.solBalance, " SOL") : "--";
-          lastReceiptEl.textContent = state.feeReceipts[0]?.blockTime ? new Date(state.feeReceipts[0].blockTime * 1000).toLocaleTimeString() : "--";
-          feeStatusEl.textContent = body.live ? "Live" : "Watching";
-        } catch {
-          creatorFeesEl.textContent = "--";
-          feeStatusEl.textContent = "Watching";
-        }
-
-        try {
-          if (state.config.distributorWallet && state.config.wbtcMint) {
-            const params = new URLSearchParams({ owner: state.config.distributorWallet, mint: state.config.wbtcMint });
-            const response = await fetch(`/api/token-balance?${params}`, { cache: "no-store" });
-            const body = await response.json();
-            state.wbtcPoolBalance = body.configured ? Number(body.balance || 0) : 0;
-            poolEl.textContent = body.configured ? formatAmount(body.balance) : "--";
-            renderHolderViews();
-          } else {
-            state.wbtcPoolBalance = 0;
-            poolEl.textContent = "--";
-            renderHolderViews();
-          }
-        } catch {
-          state.wbtcPoolBalance = 0;
-          poolEl.textContent = "--";
-          renderHolderViews();
-        }
-
-        await Promise.allSettled([holderSnapshotPromise, operationsPromise]);
+        await Promise.allSettled([loadRewardsStatus(), loadHolderSnapshot(), loadRewardReceipts(), loadOperationsSummary()]);
         renderReceipts();
+      }
+
+      async function loadRewardsStatus() {
+        const response = await fetch("/api/rewards/status", { cache: "no-store" });
+        state.rewardsStatus = await response.json();
+        const status = state.rewardsStatus;
+        const epoch = status.current_epoch || {};
+        state.wbtcPoolBalance = Number(status.total_wbtc_pool || 0);
+        poolEl.textContent = status.total_wbtc_pool && status.total_wbtc_pool !== "0" ? `${status.total_wbtc_pool} WBTC` : "--";
+        creatorFeesEl.textContent = status.creator_fees_collected === "cache-first" ? "--" : status.creator_fees_collected || "--";
+        feeStatusEl.textContent = epoch.status === "scheduled" ? "Watching" : "Synced";
+        swapStatusEl.textContent = Number(state.wbtcPoolBalance || 0) > 0 ? "Ready" : "Waiting";
+        batchEl.textContent = epoch.status === "distributing" ? "Delivering" : epoch.status === "completed" ? "Done" : "Queued";
+        renderShell();
       }
 
       async function loadOperationsSummary() {
@@ -2394,11 +2433,18 @@
         const params = new URLSearchParams();
         const walletQuery = holderSearchEl.value.trim();
         if (walletQuery) params.set("wallet", walletQuery);
-        const response = await fetch(`/api/holders?${params}`, { cache: "no-store" });
+        const response = await fetch(`/api/rewards/holders?${params}`, { cache: "no-store" });
         state.holderSnapshot = await response.json();
         renderHolderViews();
         syncCountdown();
-        holderStatusEl.textContent = state.holderSnapshot.configured === false ? "Pending" : "Live";
+        holderStatusEl.textContent = state.holderSnapshot.rows?.length ? "Snapshot" : "Pending";
+      }
+
+      async function loadRewardReceipts() {
+        const response = await fetch("/api/rewards/receipts", { cache: "no-store" });
+        const body = await response.json();
+        state.rewardReceipts = body.receipts || [];
+        if (state.rewardReceipts[0]?.created_at) lastReceiptEl.textContent = new Date(state.rewardReceipts[0].created_at).toLocaleTimeString();
       }
 
       async function copyContractAddress() {

@@ -9,6 +9,7 @@
     "preview": "node preview/server.mjs",
     "build": "node -e \"console.log('Static dashboard output: preview/')\"",
     "smoke:admin": "node scripts/admin-smoke.mjs",
+    "smoke:rewards": "node scripts/tests/reward-engine-smoke.mjs",
     "smoke:devnet-airdrop": "node scripts/devnet-airdrop-smoke.mjs",
     "smoke:devnet-airdrop:dry": "node scripts/devnet-airdrop-smoke.mjs --dry-run-build",
     "test": "echo \"Scaffold only: add Anchor and TypeScript tests during implementation\""

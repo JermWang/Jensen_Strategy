@@ -40,14 +40,16 @@ This project does not define Vercel Cron jobs in `vercel.json`. Vercel Hobby cro
 cronjob.org setup:
 
 ```text
-URL: https://www.btcpizzaanniversary.xyz/api/epoch?secret=<CRON_SECRET>
-Method: GET
+URL: https://www.btcpizzaanniversary.xyz/api/cron/epoch-tick
+Method: POST
+Headers: Authorization: Bearer <CRON_SECRET or ADMIN_API_TOKEN>
+Body: { "source": "cron-job.org", "task": "epoch-tick" }
 Schedule: every 1 minute
 Expected idle response: {"ok":true,"action":"run-due-epoch","result":{"status":"idle",...}}
 Expected armed response before due time: {"ok":true,"action":"run-due-epoch","result":{"status":"not_due",...}}
 ```
 
-The endpoint also accepts `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret: <CRON_SECRET>`. Keep the raw secret out of commits, screenshots, and public cron logs.
+The endpoint also accepts `x-cron-secret: <CRON_SECRET>`. Keep the raw secret out of commits, screenshots, and public cron logs.
 
 Each due epoch runs this sequence:
 
@@ -56,7 +58,7 @@ Each due epoch runs this sequence:
 3. Buy WBTC through Jupiter using the configured cycle spend and signer.
 4. Read the distributor WBTC pool.
 5. Snapshot holders for `PUBLIC_TOKEN_MINT`.
-6. Compute weighted payouts using token balance and holding-time multiplier.
+6. Compute proportional payouts using token balance at the epoch snapshot.
 7. Lock the manifest, prepare the batch, and distribute WBTC to payable holders.
 8. If `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL` is configured, call it with the dashboard URL and epoch record so a screenshot can be stored.
 
