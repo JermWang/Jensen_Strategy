@@ -9,6 +9,8 @@
     "preview": "node preview/server.mjs",
     "build": "node -e \"console.log('Static dashboard output: preview/')\"",
     "smoke:admin": "node scripts/admin-smoke.mjs",
+    "smoke:devnet-airdrop": "node scripts/devnet-airdrop-smoke.mjs",
+    "smoke:devnet-airdrop:dry": "node scripts/devnet-airdrop-smoke.mjs --dry-run-build",
     "test": "echo \"Scaffold only: add Anchor and TypeScript tests during implementation\""
   },
   "keywords": [
@@ -21,8 +23,8 @@
   ],
   "license": "UNLICENSED",
   "dependencies": {
-    "@solana/web3.js": "^1.95.3",
+    "@solana/web3.js": "1.98.4",
     "bs58": "^6.0.0",
-    "rpc-websockets": "^9.0.4"
+    "rpc-websockets": "9.0.4"
   }
 }

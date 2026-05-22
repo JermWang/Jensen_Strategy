@@ -131,6 +131,19 @@ const checks = [
     detail: (status) => `${status.summary.configuredActions}/${status.summary.totalActions} actions configured`
   },
   {
+    name: "Official Live GO wiring",
+    run: async () => {
+      const status = await requestJson(`${baseUrl}/api/admin`, {
+        headers: { "x-admin-password": adminSecret }
+      });
+      const action = status.actions.find((item) => item.id === "official-live-go");
+      if (!action) throw new Error("official-live-go action is missing");
+      if (!action.dangerous) throw new Error("official-live-go must remain live-gated");
+      return action;
+    },
+    detail: (action) => `${action.mode}${action.configured ? " configured" : " missing config"}`
+  },
+  {
     name: "Validate config",
     run: async () => await adminAction({ baseUrl, adminSecret, action: "validate-config" })
   },

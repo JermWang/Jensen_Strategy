@@ -6,7 +6,7 @@ The admin page lives at `/admin` and talks to `/api/admin`.
 
 Set either `ADMIN_PASSWORD` or `ADMIN_API_TOKEN`. The static admin page keeps the password in `sessionStorage` for the current browser session and sends it to the API as `x-admin-password`. The API refuses every admin request when no admin secret is configured.
 
-For Vercel/mainnet, add the variables from `.env.mainnet.example` to the project environment. At minimum, the live admin page needs `ADMIN_PASSWORD` or `ADMIN_API_TOKEN`, `SOLANA_RPC_URL`, and the public wallet/mint values. After changing Vercel env vars, redeploy the project so `/api/admin` receives the new server environment.
+For Vercel/mainnet, add the variables from `.env.mainnet.example` to the project environment. At minimum, the live admin page needs `ADMIN_PASSWORD` or `ADMIN_API_TOKEN`, `SOLANA_RPC_URL` or `HELIUS_RPC_URL`, and the public wallet/mint values. After changing Vercel env vars, redeploy the project so `/api/admin` receives the new server environment.
 
 ## Direct Built-In Actions
 
@@ -14,8 +14,9 @@ These buttons run directly through Solana RPC and do not need third-party credit
 
 - `Validate Config`: checks admin, RPC, wallet, mint, and action readiness.
 - `Refresh Fee Receipts`: reads recent `PUBLIC_FEE_WALLET` signatures and SOL balance.
-- `Refresh Holder List`: scans SPL token accounts for `PUBLIC_TOKEN_MINT` by `getProgramAccounts`.
+- `Refresh Holder List`: scans token accounts for `PUBLIC_TOKEN_MINT` through the configured holder provider.
 - `Check WBTC Vault`: reads the configured `PUBLIC_DISTRIBUTOR_WALLET` balance for `PUBLIC_WBTC_MINT`.
+- `Official Live GO`: dry-runs launch readiness, or in live-confirmed mode creates the holder snapshot, locks the manifest, prepares the next batch, and executes the WBTC send.
 - `Create Holder Snapshot`: same holder-source path as refresh, exposed in the snapshot workflow.
 - `Simulate Distribution`: computes holder weights, dust skips, payout estimates, and batch count without sending WBTC.
 - `Publish Receipt`: stores a durable local receipt record when no receipt webhook is configured.
@@ -29,16 +30,38 @@ These buttons run directly through Solana RPC and do not need third-party credit
 - `Simulate Fee Claim`: builds the PumpPortal `collectCreatorFee` transaction locally without signing.
 - `Claim Creator Fees`: signs and submits the PumpPortal `collectCreatorFee` transaction with `CREATOR_KEYPAIR_PATH` when dry-run is disabled.
 
-For direct holder snapshots, set:
+For direct holder snapshots through an indexed RPC, set:
 
 ```env
-HOLDER_SNAPSHOT_PROVIDER=solana-rpc
+HOLDER_SNAPSHOT_PROVIDER=helius
 ENABLE_RPC_HOLDER_FALLBACK=true
+HELIUS_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
 PUBLIC_TOKEN_MINT=...
 SOLANA_RPC_URL=...
 ```
 
-Use a paid or dedicated Solana RPC for large holder lists. Public RPC nodes may reject or throttle `getProgramAccounts`.
+Use a paid or dedicated Solana RPC for large holder lists. Public RPC nodes may reject or throttle `getProgramAccounts`, and many do not expose Token-2022 account indexes.
+
+For Pump.fun / Token-2022 mints, the safer production setup is:
+
+```env
+HOLDER_SNAPSHOT_PROVIDER=helius
+HELIUS_API_KEY=...
+PUBLIC_TOKEN_MINT=...
+SOLANA_RPC_URL=...
+```
+
+The Helius path uses `getTokenAccounts` pagination, merges multiple token accounts owned by the same wallet, and keeps `SOLANA_RPC_URL` for mint/supply reads.
+
+Before using a snapshot for rewards, exclude LP, pool, treasury, deployer, fee, burn, and operational wallets. The scanner reports excluded accounts separately and excludes any wallet at or above `HOLDER_MAX_SUPPLY_PERCENT` by default. For Pump-style launches, `20` is the default because wallets above roughly 20% are usually LP, bonding curve, migration, treasury, or other control accounts:
+
+```env
+HOLDER_MAX_SUPPLY_PERCENT=20
+HOLDER_EXCLUDED_POOL_WALLETS=<known LP/pool owners>
+HOLDER_EXCLUDED_WALLETS=<treasury, deployer, fee, distributor, burn, team wallets>
+```
+
+Do not treat the largest token-account owner as a human holder until you identify whether it is a pool, bonding curve, migration vault, treasury, or burn/control account.
 
 ## Webhook Actions
 
@@ -183,6 +206,10 @@ The dashboard is organized around the manual operator flow:
 ```text
 Claim Fees -> Buy WBTC -> Snapshot Holders -> Lock Snapshot -> Simulate Distribution -> Execute Distribution -> Verify Results
 ```
+
+The `Official Live GO` control uses that same backend wiring for the airdrop leg. Keep `Dry run` enabled first; it checks config, fee receipts, WBTC vault, holders, and payout math. With `Dry run` off and `Confirm live` enabled, it uses the reward pool from the payload builder, or the current distributor WBTC balance when the field is empty, then locks the snapshot, generates the batch, and sends WBTC. Add `"executeDistribution": false` in the raw JSON payload if you want it to stop after preparing the batch.
+
+Launch execution is manual-only. `PUBLIC_DISTRIBUTION_STARTED_AT` is display and schedule metadata for the public dashboard; setting that timestamp does not claim fees, buy WBTC, create snapshots, lock manifests, or send distributions. The live launch sequence only runs from the admin dashboard after pressing `Official Live GO` with `Dry run` off and `Confirm live` enabled.
 
 Use the payload builder for values that should travel with the next action:
 

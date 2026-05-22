@@ -1155,6 +1155,28 @@
         font-weight: 800;
       }
 
+      .holder-source {
+        display: inline-flex;
+        width: fit-content;
+        min-height: 24px;
+        align-items: center;
+        margin-top: 10px;
+        border: 1px solid rgba(85, 223, 255, 0.34);
+        border-radius: 999px;
+        background: rgba(85, 223, 255, 0.1);
+        color: var(--cyan);
+        padding: 3px 10px;
+        font-size: 11px;
+        font-weight: 1000;
+        text-transform: uppercase;
+      }
+
+      .holder-source.fallback {
+        border-color: rgba(247, 183, 51, 0.42);
+        background: rgba(247, 183, 51, 0.13);
+        color: var(--gold);
+      }
+
       .holder-search {
         width: 100%;
         min-height: 42px;
@@ -1204,30 +1226,34 @@
 
       .holder-table {
         display: grid;
-        padding: 12px;
-        gap: 8px;
+        padding: 10px;
+        gap: 7px;
       }
 
       .holder-row {
         display: grid;
-        grid-template-columns: 70px minmax(150px, 1.2fr) repeat(4, minmax(82px, 0.65fr)) 118px;
-        gap: 12px;
+        grid-template-columns: 42px minmax(0, 1fr) minmax(132px, 178px);
+        gap: 10px;
         align-items: center;
         min-height: 52px;
-        padding: 0 14px;
+        padding: 8px 10px;
         border: 1px solid rgba(255, 242, 190, 0.12);
-        border-radius: 14px;
-        background: rgba(255, 242, 190, 0.055);
+        border-radius: 8px;
+        background:
+          linear-gradient(145deg, rgba(255, 242, 190, 0.055), rgba(85, 223, 255, 0.025)),
+          rgba(255, 242, 190, 0.035);
         color: #d8d6e6;
         font-size: 12px;
         font-weight: 900;
       }
 
       .holder-row.header {
-        min-height: 34px;
+        min-height: 32px;
         color: var(--soft);
         background: transparent;
         border-color: transparent;
+        padding-top: 0;
+        padding-bottom: 0;
         text-transform: uppercase;
       }
 
@@ -1241,28 +1267,68 @@
         color: var(--cream);
       }
 
+      .holder-rank {
+        display: inline-grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(247, 183, 51, 0.4);
+        border-radius: 999px;
+        background: rgba(247, 183, 51, 0.14);
+        color: var(--gold);
+        font-size: 11px;
+        font-weight: 1000;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .holder-main {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
       .holder-wallet {
         color: var(--gold);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .holder-badge {
+      .holder-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .holder-chip {
         display: inline-flex;
-        justify-content: center;
+        align-items: center;
+        min-height: 18px;
+        border: 1px solid rgba(255, 242, 190, 0.12);
         border-radius: 999px;
-        padding: 6px 10px;
-        color: #061009;
-        background: var(--mint);
-        font-size: 11px;
-        text-transform: uppercase;
+        background: rgba(8, 10, 16, 0.38);
+        color: #d8d6e6;
+        padding: 2px 6px;
+        font-size: 10px;
+        font-weight: 900;
+        white-space: nowrap;
       }
 
-      .holder-badge.out {
-        color: var(--cream);
-        background: rgba(255, 107, 88, 0.26);
-      }
-
-      .odds-pill {
+      .holder-amount {
         color: var(--cyan);
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .holder-amount span {
+        display: block;
+        margin-top: 2px;
+        color: var(--soft);
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
       }
 
       .holder-empty {
@@ -1358,8 +1424,7 @@
         .holder-toolbar,
         .draw-board,
         .draw-numbers,
-        .holder-stats,
-        .holder-row {
+        .holder-stats {
           grid-template-columns: 1fr;
         }
 
@@ -1446,10 +1511,10 @@
           <article class="art-panel panel-flow" id="flow">
             <h2>Order Flow</h2>
             <div class="flow-list">
-              <div class="flow-row"><b>1 Fees</b><span>Pump.fun fee wallet</span><strong id="feeStatus">Config</strong></div>
-              <div class="flow-row"><b>2 Swap</b><span>WBTC pool wallet</span><strong id="swapStatus">Config</strong></div>
-              <div class="flow-row"><b>3 List</b><span>Holder indexer</span><strong id="holderStatus">Config</strong></div>
-              <div class="flow-row"><b>4 Drop</b><span>Distributor receipts</span><strong id="batch">Config</strong></div>
+              <div class="flow-row"><b>1 Fees</b><span>Pump.fun fee wallet</span><strong id="feeStatus">Syncing</strong></div>
+              <div class="flow-row"><b>2 Swap</b><span>WBTC pool wallet</span><strong id="swapStatus">Syncing</strong></div>
+              <div class="flow-row"><b>3 List</b><span>Holder board</span><strong id="holderStatus">Snapshot</strong></div>
+              <div class="flow-row"><b>4 Drop</b><span>Distributor receipts</span><strong id="batch">Queued</strong></div>
             </div>
           </article>
 
@@ -1466,7 +1531,7 @@
         </section>
 
         <section class="receipt-row" id="receipts" aria-live="polite">
-          <div class="empty-state" id="receiptEmpty">Configure `PUBLIC_FEE_WALLET` to load live Solana fee-wallet receipts.</div>
+          <div class="empty-state" id="receiptEmpty">Fee wallet is being watched. Confirmed fee receipts will appear here as soon as Solana returns them.</div>
           <div class="controls">
             <button class="button primary" id="refreshData" type="button">Refresh chain data</button>
             <a class="button secondary" href="#holders">Search holders</a>
@@ -1529,7 +1594,8 @@
             <div class="holder-toolbar">
               <div>
                 <h3>Current Draw Board</h3>
-                <span>Search any wallet or SOL domain to see rank, cutoff status, and projected slice.</span>
+                <span>All eligible wallets for this epoch, ranked by score with projected WBTC and weight details.</span>
+                <strong class="holder-source" id="holderSource">Loading holders</strong>
               </div>
               <input class="holder-search" id="holderSearch" type="search" placeholder="Search wallet or SOL domain" autocomplete="off" />
             </div>
@@ -1568,6 +1634,8 @@
         config: null,
         holderSnapshot: null,
         feeReceipts: [],
+        feeReceiptStatus: null,
+        wbtcPoolBalance: 0,
         remaining: 0,
         cycle: null,
         configSyncedAtMs: Date.now()
@@ -1600,6 +1668,7 @@
       const holderCutoffEl = document.querySelector("#holderCutoff");
       const eligibleShownEl = document.querySelector("#eligibleShown");
       const snapshotAgeEl = document.querySelector("#snapshotAge");
+      const holderSourceEl = document.querySelector("#holderSource");
       const drawMeterEl = document.querySelector("#drawMeter");
       const drawRankEl = document.querySelector("#drawRank");
       const drawEdgeEl = document.querySelector("#drawEdge");
@@ -1705,14 +1774,26 @@
 
       function distributionStartMs() {
         const configured = Date.parse(state.config?.distributionStartedAt || "");
-        if (Number.isFinite(configured)) return configured;
-        const serverEpoch = state.config?.currentDistributionEpoch;
-        const elapsedSeconds = Number(serverEpoch?.elapsedSeconds || 0);
-        return state.configSyncedAtMs - Math.max(0, elapsedSeconds) * 1000;
+        return Number.isFinite(configured) ? configured : null;
       }
 
       function distributionCycle(nowMs = Date.now()) {
         const startMs = distributionStartMs();
+        if (startMs === null) {
+          const step = distributionStep(0);
+          return {
+            active: false,
+            schedule: distributionSchedule(0),
+            scheduleIndex: 0,
+            epochIndex: 0,
+            interval: step.seconds,
+            label: step.label,
+            holderCap: step.holderCap,
+            remaining: step.seconds,
+            progress: 0
+          };
+        }
+
         const elapsed = Math.max(0, Math.floor((nowMs - startMs) / 1000));
         let epochIndex = 0;
         let remainingElapsed = elapsed;
@@ -1740,7 +1821,13 @@
         if (!sliceScheduleEl || !cycle?.schedule) return;
         sliceScheduleEl.innerHTML = cycle.schedule.slice(0, 4)
           .map((step) => {
-            const status = step.epochIndex < cycle.scheduleIndex ? "done" : step.epochIndex === cycle.scheduleIndex ? "active" : "";
+            const status = cycle.active
+              ? step.epochIndex < cycle.scheduleIndex
+                ? "done"
+                : step.epochIndex === cycle.scheduleIndex
+                  ? "active"
+                  : ""
+              : "";
             return `<div class="slice-step ${status}" title="Up to ${escapeHtml(step.holderCap.toLocaleString())} holders">${escapeHtml(step.label)}</div>`;
           })
           .join("");
@@ -1757,11 +1844,11 @@
         const cycle = distributionCycle();
         state.cycle = cycle;
         state.remaining = cycle.remaining;
-        countdownEl.textContent = formatTime(state.remaining);
+        countdownEl.textContent = cycle.active ? formatTime(state.remaining) : "Manual";
         countdownProgressEl.style.setProperty("--countdown-progress", `${Math.round(cycle.progress * 100)}%`);
-        intervalEl.textContent = cycle.label;
+        intervalEl.textContent = cycle.active ? cycle.label : "Manual launch";
         epochHolderCapEl.textContent = effectiveHolderCap(cycle).toLocaleString();
-        cycleStatusEl.textContent = `Epoch ${cycle.epochIndex + 1} active`;
+        cycleStatusEl.textContent = cycle.active ? `Epoch ${cycle.epochIndex + 1} active` : "Awaiting admin GO";
         renderSliceSchedule(cycle);
       }
 
@@ -1769,6 +1856,12 @@
         const number = Number(value);
         if (!Number.isFinite(number)) return "--";
         return `${number.toLocaleString(undefined, { maximumFractionDigits: 6 })}${suffix}`;
+      }
+
+      function formatCompactNumber(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number)) return "--";
+        return number.toLocaleString(undefined, { maximumFractionDigits: number >= 1 ? 2 : 6 });
       }
 
       function renderShell() {
@@ -1820,38 +1913,91 @@
         renderHolderBoard(current);
       }
 
+      function eligibleScoreTotal(snapshot) {
+        const holders = Array.isArray(snapshot?.holders) ? snapshot.holders : [];
+        return holders.reduce((total, holder) => {
+          const eligible = holder.status === "eligible" || holder.eligible === true;
+          return eligible ? total + Number(holder.score || 0) : total;
+        }, 0);
+      }
+
+      function formatHoldingTime(holder) {
+        if (holder.holdingTimeLabel) return holder.holdingTimeLabel;
+        const seconds = Number(holder.holdingSeconds);
+        if (Number.isFinite(seconds) && seconds > 0) return formatDurationLabel(seconds);
+        const since = Date.parse(holder.holdingSince || "");
+        const updatedAt = Date.parse(state.holderSnapshot?.updatedAt || "");
+        if (Number.isFinite(since) && Number.isFinite(updatedAt) && updatedAt >= since) {
+          return formatDurationLabel(Math.floor((updatedAt - since) / 1000));
+        }
+        return "Unindexed";
+      }
+
+      function weightDetails(holder) {
+        const score = formatCompactNumber(holder.score);
+        const balance = holder.balanceLabel || formatCompactNumber(holder.balanceUi);
+        const holdTime = formatHoldingTime(holder);
+        const multiplier = Number(holder.timeMultiplier);
+        const multiplierLabel = Number.isFinite(multiplier) && multiplier > 0 ? `${multiplier.toFixed(2)}x` : "--";
+        return [
+          `Score ${score}`,
+          `Bal ${balance}`,
+          `Held ${holdTime}`,
+          `Time ${multiplierLabel}`
+        ];
+      }
+
+      function epochEstimateLabel(holder, snapshot) {
+        const eligible = holder.status === "eligible" || holder.eligible === true;
+        if (!eligible) return "0.00000000 WBTC";
+
+        if (state.wbtcPoolBalance === null) return "Pending WBTC";
+        const pool = Number(state.wbtcPoolBalance);
+        const totalScore = eligibleScoreTotal(snapshot);
+        const score = Number(holder.score || 0);
+        if (!Number.isFinite(pool)) return "Pending WBTC";
+        if (pool <= 0 || totalScore <= 0 || score <= 0) return "0.00000000 WBTC";
+
+        const estimate = (pool * score) / totalScore;
+        return `${estimate.toLocaleString(undefined, { minimumFractionDigits: 8, maximumFractionDigits: 8 })} WBTC`;
+      }
+
       function renderHolderBoard(current = resolveCurrentHolder()) {
         const snapshot = state.holderSnapshot;
         const holders = Array.isArray(snapshot?.holders) ? snapshot.holders : [];
         const query = holderSearchEl.value.trim().toLowerCase();
-        const filtered = holders.filter((holder) => holderSearchText(holder).includes(query));
-        const visible = query ? filtered : holders.slice(0, 25);
+        const eligibleHolders = holders.filter((holder) => holder.status === "eligible" || holder.eligible === true);
+        const pool = query ? holders : eligibleHolders.length ? eligibleHolders : holders;
+        const visible = pool.filter((holder) => !query || holderSearchText(holder).includes(query));
 
         roundCapEl.textContent = snapshot?.roundCap?.toLocaleString?.() || "--";
         holderCutoffEl.textContent = snapshot?.cutoffScore?.toLocaleString?.() || "--";
         eligibleShownEl.textContent = snapshot?.eligibleCount?.toLocaleString?.() || "--";
         snapshotAgeEl.textContent = snapshot?.updatedAt ? new Date(snapshot.updatedAt).toLocaleTimeString() : "--";
+        holderSourceEl.textContent = snapshot ? (snapshot.fallback ? "Unavailable" : snapshot.sourceLabel || "Live holder indexer") : "Loading holders";
+        holderSourceEl.classList.toggle("fallback", !snapshot || Boolean(snapshot.fallback));
+        holderSourceEl.title = snapshot?.notice || snapshot?.fallbackReason || "";
 
         holderTableEl.innerHTML = `
           <div class="holder-row header">
-            <span>Rank</span><span>Wallet</span><span>Score</span><span>Balance</span><span>Held</span><span>Odds</span><span>Status</span>
+            <span>Rank</span><span>Eligible wallet and weight</span><span>Est. epoch WBTC</span>
           </div>
           ${
             visible.length
               ? visible
                   .map((holder) => {
-                    const eligible = holder.status === "eligible" || holder.eligible === true;
                     const isCurrent = Boolean(current?.wallet && holder.wallet === current.wallet);
                     const wallet = holder.wallet || holder.address || "";
+                    const label = wallet ? shortAddress(wallet) : "--";
+                    const chips = weightDetails(holder).map((item) => `<span class="holder-chip">${escapeHtml(item)}</span>`).join("");
                     return `
                       <div class="holder-row ${isCurrent ? "current" : ""}">
-                        <strong>${holder.rank ? `#${holder.rank}` : "--"}</strong>
-                        <span class="holder-wallet" title="${escapeHtml(wallet)}">${escapeHtml(holderDisplayName(holder))}</span>
-                        <strong>${holder.score?.toLocaleString?.() || "--"}</strong>
-                        <span>${escapeHtml(holder.balanceLabel || "--")}</span>
-                        <span>${escapeHtml(holder.heldLabel || "--")}</span>
-                        <span class="odds-pill">${escapeHtml(holder.oddsLabel || "--")}</span>
-                        <span class="holder-badge ${eligible ? "" : "out"}">${eligible ? "Made cut" : "Below cut"}</span>
+                        <span class="holder-rank">${holder.rank ? `#${holder.rank}` : "--"}</span>
+                        <span class="holder-main">
+                          <strong class="holder-wallet" title="${escapeHtml(wallet)}">${escapeHtml(label)}</strong>
+                          <span class="holder-details">${chips}</span>
+                        </span>
+                        <strong class="holder-amount">${escapeHtml(epochEstimateLabel(holder, snapshot))}<span>this epoch</span></strong>
                       </div>
                     `;
                   })
@@ -1917,6 +2063,7 @@
         receiptRow.querySelectorAll(".receipt").forEach((node) => node.remove());
         if (!state.feeReceipts.length) {
           receiptEmptyEl.style.display = "grid";
+          receiptEmptyEl.textContent = state.feeReceiptStatus?.reason || "Fee wallet is being watched. Confirmed fee receipts will appear here as soon as Solana returns them.";
           return;
         }
 
@@ -1934,26 +2081,28 @@
         const response = await fetch("/api/config", { cache: "no-store" });
         state.config = await response.json();
         state.configSyncedAtMs = Date.now();
-        feeStatusEl.textContent = state.config.feeWallet ? "Ready" : "Config";
-        swapStatusEl.textContent = state.config.distributorWallet ? "Ready" : "Config";
-        holderStatusEl.textContent = state.config.holderIndexerUrlConfigured ? "Ready" : "Config";
-        batchEl.textContent = state.config.holderIndexerUrlConfigured ? "Ready" : "Config";
+        feeStatusEl.textContent = state.config.feeWallet ? "Ready" : "Pending";
+        swapStatusEl.textContent = state.config.distributorWallet ? "Ready" : "Pending";
+        holderStatusEl.textContent = state.config.holderIndexerUrlConfigured ? "Indexer" : "RPC";
+        batchEl.textContent = "Queued";
         renderShell();
       }
 
       async function loadChainData() {
         if (!state.config) await loadConfig();
+        const holderSnapshotPromise = loadHolderSnapshot();
 
         try {
           const response = await fetch("/api/fee-receipts", { cache: "no-store" });
           const body = await response.json();
+          state.feeReceiptStatus = body;
           state.feeReceipts = body.receipts || [];
           creatorFeesEl.textContent = body.configured ? formatAmount(body.totalSolAndWsolBalance ?? body.solBalance, " SOL") : "--";
           lastReceiptEl.textContent = state.feeReceipts[0]?.blockTime ? new Date(state.feeReceipts[0].blockTime * 1000).toLocaleTimeString() : "--";
-          feeStatusEl.textContent = body.configured ? "Live" : "Config";
+          feeStatusEl.textContent = body.live ? "Live" : "Watching";
         } catch {
           creatorFeesEl.textContent = "--";
-          feeStatusEl.textContent = "Error";
+          feeStatusEl.textContent = "Watching";
         }
 
         try {
@@ -1961,15 +2110,21 @@
             const params = new URLSearchParams({ owner: state.config.distributorWallet, mint: state.config.wbtcMint });
             const response = await fetch(`/api/token-balance?${params}`, { cache: "no-store" });
             const body = await response.json();
+            state.wbtcPoolBalance = body.configured ? Number(body.balance || 0) : 0;
             poolEl.textContent = body.configured ? formatAmount(body.balance) : "--";
+            renderHolderViews();
           } else {
+            state.wbtcPoolBalance = 0;
             poolEl.textContent = "--";
+            renderHolderViews();
           }
         } catch {
+          state.wbtcPoolBalance = 0;
           poolEl.textContent = "--";
+          renderHolderViews();
         }
 
-        await loadHolderSnapshot();
+        await holderSnapshotPromise;
         renderReceipts();
       }
 
@@ -1981,7 +2136,7 @@
         state.holderSnapshot = await response.json();
         renderHolderViews();
         syncCountdown();
-        holderStatusEl.textContent = state.holderSnapshot.configured === false ? "Config" : "Live";
+        holderStatusEl.textContent = state.holderSnapshot.configured === false ? "Pending" : "Live";
       }
 
       async function copyContractAddress() {
