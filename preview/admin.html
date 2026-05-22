@@ -1821,7 +1821,7 @@
           ["Holder indexer", config.holderIndexerUrlConfigured ? "configured" : "fallback or missing", true],
           ["Admin secret", state.status?.adminConfigured ? "configured" : "missing", state.status?.adminConfigured],
           ["CRON_SECRET", state.status?.automationConfig?.cronSecretConfigured ? "configured" : "missing", state.status?.automationConfig?.cronSecretConfigured],
-          ["ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL", state.status?.automationConfig?.screenshotWebhookConfigured ? "configured" : "missing", state.status?.automationConfig?.screenshotWebhookConfigured],
+          ["ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL", state.status?.automationConfig?.screenshotWebhookConfigured ? "configured" : "optional", true],
           ["ADMIN_STORAGE_PATH", state.status?.storage?.root || ".admin-data", true],
           ["Latest manifest", state.status?.storage?.latestManifest || "none", true],
           ["Latest batch", state.status?.storage?.latestBatch || "none", true]

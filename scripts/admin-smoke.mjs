@@ -123,6 +123,14 @@ const checks = [
       }`
   },
   {
+    name: "Public operations summary",
+    run: async () => await requestJson(`${baseUrl}/api/operations`),
+    detail: (operations) =>
+      `storage=${operations.storage?.backend || "n/a"} automation=${operations.automation?.status || "unknown"} latestSnapshot=${
+        operations.latestSnapshot?.label || "none"
+      }`
+  },
+  {
     name: "Admin status",
     run: async () =>
       await requestJson(`${baseUrl}/api/admin`, {

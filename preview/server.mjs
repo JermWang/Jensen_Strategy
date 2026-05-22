@@ -10,7 +10,7 @@ const env = await loadEnv();
 Object.assign(process.env, env);
 const require = createRequire(import.meta.url);
 const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction, runScheduledEpoch } = require("../lib/admin-control.js");
-const { feeReceipts, holderSnapshot, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
+const { feeReceipts, holderSnapshot, operationsSummary, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
 const port = Number(process.env.PORT || 4199);
 
 const types = {
@@ -83,6 +83,11 @@ createServer(async (request, response) => {
 
   if (url.pathname === "/api/token-balance") {
     json(response, 200, await tokenBalance(url.searchParams.get("owner"), url.searchParams.get("mint"), env));
+    return;
+  }
+
+  if (url.pathname === "/api/operations") {
+    json(response, 200, await operationsSummary(env));
     return;
   }
 

@@ -44,12 +44,13 @@ Each due epoch runs this sequence:
 5. Snapshot holders for `PUBLIC_TOKEN_MINT`.
 6. Compute weighted payouts using token balance and holding-time multiplier.
 7. Lock the manifest, prepare the batch, and distribute WBTC to payable holders.
-8. Call `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL` with the dashboard URL and epoch record so a screenshot can be stored.
+8. If `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL` is configured, call it with the dashboard URL and epoch record so a screenshot can be stored.
 
 Required live epoch env:
 
 ```env
 CRON_SECRET=...
+# Optional:
 ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL=https://your-screenshot-worker.example/capture
 ADMIN_EPOCH_SCREENSHOT_URL=https://your-production-site.example
 CREATOR_FEE_DRY_RUN=false

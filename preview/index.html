@@ -1755,6 +1755,7 @@
         holderSnapshot: null,
         feeReceipts: [],
         feeReceiptStatus: null,
+        operations: null,
         wbtcPoolBalance: 0,
         remaining: 0,
         cycle: null,
@@ -1901,6 +1902,26 @@
       }
 
       function distributionCycle(nowMs = Date.now()) {
+        const automation = state.operations?.automation;
+        const automationEndMs = Date.parse(automation?.nextEpochEndsAt || "");
+        if (automation?.active && Number.isFinite(automationEndMs)) {
+          const epochIndex = Math.max(0, Number(automation.nextEpochIndex || 0));
+          const step = distributionStep(epochIndex);
+          const remaining = Math.max(0, Math.ceil((automationEndMs - nowMs) / 1000));
+          const elapsed = Math.max(0, step.seconds - remaining);
+          return {
+            active: true,
+            schedule: distributionSchedule(epochIndex),
+            scheduleIndex: epochIndex,
+            epochIndex,
+            interval: step.seconds,
+            label: step.label,
+            holderCap: step.holderCap,
+            remaining,
+            progress: Math.max(0, Math.min(1, elapsed / step.seconds))
+          };
+        }
+
         const startMs = distributionStartMs();
         if (startMs === null) {
           const step = distributionStep(0);
@@ -2000,6 +2021,102 @@
           copyContractEl.disabled = true;
           copyContractEl.classList.remove("ready", "copied");
         }
+      }
+
+      function batchStatusLabel(batch) {
+        if (!batch) return "";
+        if (batch.signature) return "Sent";
+        if (batch.status === "confirmed") return "Sent";
+        if (batch.status === "prepared" || batch.status === "not_sent") return `${batch.recipientCount || batch.batchSize || 0} ready`;
+        return String(batch.status || "Queued").replaceAll("_", " ");
+      }
+
+      function formatProofTime(value) {
+        const parsed = Date.parse(value || "");
+        return Number.isFinite(parsed) ? new Date(parsed).toLocaleString() : "";
+      }
+
+      function operationProofs() {
+        const operations = state.operations;
+        if (!operations) return [];
+        const proofs = [];
+        const epoch = operations.latestEpoch;
+        const batch = operations.latestBatch;
+        const manifest = operations.latestManifest;
+        const snapshot = operations.latestSnapshot;
+
+        if (epoch) {
+          proofs.push({
+            status: `Epoch ${epoch.epochNumber || ""} ${epoch.status || "recorded"}`.trim(),
+            time: formatProofTime(epoch.endedAt || epoch.createdAt),
+            signature: epoch.signature,
+            label: epoch.message || epoch.label || epoch.id
+          });
+        }
+        if (batch) {
+          proofs.push({
+            status: `Batch ${batchStatusLabel(batch)}`,
+            time: formatProofTime(batch.createdAt),
+            signature: batch.signature,
+            label: `${batch.recipientCount || 0} recipients`
+          });
+        }
+        if (manifest) {
+          proofs.push({
+            status: "Manifest locked",
+            time: formatProofTime(manifest.createdAt),
+            label: `${manifest.payableCount || 0} payable`
+          });
+        }
+        if (snapshot) {
+          proofs.push({
+            status: "Snapshot indexed",
+            time: formatProofTime(snapshot.createdAt),
+            label: `${snapshot.eligibleCount || 0} eligible holders`
+          });
+        }
+
+        const receipts = Array.isArray(operations.receipts) ? operations.receipts : [];
+        receipts.forEach((receipt) => {
+          proofs.push({
+            status: receipt.type || receipt.status || "Receipt",
+            time: formatProofTime(receipt.createdAt),
+            signature: receipt.signature,
+            label: receipt.label || receipt.id
+          });
+        });
+
+        return proofs.filter((proof) => proof.status || proof.signature || proof.label);
+      }
+
+      function renderOperations() {
+        const operations = state.operations;
+        if (!operations) return;
+        const automation = operations.automation;
+        const batch = operations.latestBatch;
+
+        if (batch) {
+          batchEl.textContent = batchStatusLabel(batch);
+          batchEl.title = batch.id || "";
+        } else if (automation?.active) {
+          batchEl.textContent = "Armed";
+          batchEl.title = automation.nextEpochEndsAt ? `Next epoch due ${formatProofTime(automation.nextEpochEndsAt)}` : "";
+        } else {
+          batchEl.textContent = "Queued";
+          batchEl.title = automation?.message || "";
+        }
+
+        syncCountdown();
+
+        if (automation?.active) {
+          cycleStatusEl.textContent = `Epoch ${Number(automation.nextEpochIndex || 0) + 1} armed`;
+        } else if (automation?.status === "blocked") {
+          cycleStatusEl.textContent = "Blocked";
+          cycleStatusEl.title = automation.lastError || "";
+        }
+
+        const latestProof = operationProofs().find((proof) => proof.time || proof.signature);
+        if (latestProof?.time) lastReceiptEl.textContent = latestProof.time.split(", ").pop();
       }
 
       function renderTicket(current) {
@@ -2184,18 +2301,29 @@
 
       function renderReceipts() {
         receiptRow.querySelectorAll(".receipt").forEach((node) => node.remove());
-        if (!state.feeReceipts.length) {
+        const proofs = operationProofs();
+        const chainProofs = state.feeReceipts.map((receipt) => ({
+          status: receipt.status,
+          time: receipt.blockTime ? new Date(receipt.blockTime * 1000).toLocaleString() : `Slot ${receipt.slot}`,
+          signature: receipt.signature,
+          label: receipt.signature ? `TX: ${shortAddress(receipt.signature)} view` : "Solana receipt"
+        }));
+        const cards = [...proofs, ...chainProofs].slice(0, 5);
+
+        if (!cards.length) {
           receiptEmptyEl.style.display = "grid";
           receiptEmptyEl.textContent = state.feeReceiptStatus?.reason || "Fee wallet is being watched. Confirmed fee receipts will appear here as soon as Solana returns them.";
           return;
         }
 
         receiptEmptyEl.style.display = "none";
-        state.feeReceipts.slice(0, 5).forEach((receipt) => {
+        cards.forEach((receipt) => {
           const card = document.createElement("article");
           card.className = "receipt";
-          const time = receipt.blockTime ? new Date(receipt.blockTime * 1000).toLocaleString() : `Slot ${receipt.slot}`;
-          card.innerHTML = `<b>${receipt.status}</b><span>${time}</span><a class="tx-link" href="${solscanTx(receipt.signature)}" target="_blank" rel="noreferrer">TX: ${shortAddress(receipt.signature)} view</a>`;
+          const link = receipt.signature
+            ? `<a class="tx-link" href="${solscanTx(receipt.signature)}" target="_blank" rel="noreferrer">${escapeHtml(receipt.label || `TX: ${shortAddress(receipt.signature)} view`)}</a>`
+            : `<span>${escapeHtml(receipt.label || "Stored proof")}</span>`;
+          card.innerHTML = `<b>${escapeHtml(receipt.status || "recorded")}</b><span>${escapeHtml(receipt.time || "")}</span>${link}`;
           receiptRow.insertBefore(card, receiptEmptyEl);
         });
       }
@@ -2213,6 +2341,7 @@
 
       async function loadChainData() {
         if (!state.config) await loadConfig();
+        const operationsPromise = loadOperationsSummary();
         const holderSnapshotPromise = loadHolderSnapshot();
 
         try {
@@ -2247,8 +2376,18 @@
           renderHolderViews();
         }
 
-        await holderSnapshotPromise;
+        await Promise.allSettled([holderSnapshotPromise, operationsPromise]);
         renderReceipts();
+      }
+
+      async function loadOperationsSummary() {
+        try {
+          const response = await fetch("/api/operations", { cache: "no-store" });
+          state.operations = await response.json();
+          renderOperations();
+        } catch {
+          state.operations = null;
+        }
       }
 
       async function loadHolderSnapshot() {
