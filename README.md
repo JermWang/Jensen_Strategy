@@ -35,9 +35,9 @@ The hard part is automatic distribution at scale. A Solana program cannot iterat
 
 The static preview includes a password-gated admin operations console at `/admin`.
 
-Built-in buttons can validate config, refresh fee receipts, scan holders directly through Solana RPC, check the WBTC vault, create holder snapshots, simulate weighted WBTC distributions, record receipts, lock manifests, and prepare idempotent distribution batches. Live signing operations such as claiming creator fees, approving/executing WBTC buys, and sending WBTC transfers are exposed as webhook buttons so they can trigger your keeper/distributor services without an AI assistant.
+Built-in controls validate config, refresh fee receipts, scan holders directly through Solana RPC, check the WBTC vault, create holder snapshots, simulate weighted WBTC distributions, record receipts, lock manifests, and prepare idempotent distribution batches. Confirmed `Official Live GO` now also arms the continuous epoch runner: Vercel cron calls `/api/epoch`, which only runs when the displayed epoch time is due, then claims creator fees, buys WBTC, snapshots holders for `PUBLIC_TOKEN_MINT`, distributes to holders by weighted balance, and records screenshot evidence through `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL`.
 
-See `docs/ADMIN_OPERATIONS.md` and `.env.example` for the required `ADMIN_PASSWORD`, RPC holder fallback, and per-action webhook variables.
+See `docs/ADMIN_OPERATIONS.md` and `.env.example` for the required `ADMIN_PASSWORD`, `CRON_SECRET`, screenshot webhook, RPC holder fallback, signing keys, and per-action webhook variables.
 
 ## MVP Recommendation
 

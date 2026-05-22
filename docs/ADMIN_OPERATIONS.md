@@ -16,7 +16,8 @@ These buttons run directly through Solana RPC and do not need third-party credit
 - `Refresh Fee Receipts`: reads recent `PUBLIC_FEE_WALLET` signatures and SOL balance.
 - `Refresh Holder List`: scans token accounts for `PUBLIC_TOKEN_MINT` through the configured holder provider.
 - `Check WBTC Vault`: reads the configured `PUBLIC_DISTRIBUTOR_WALLET` balance for `PUBLIC_WBTC_MINT`.
-- `Official Live GO`: dry-runs launch readiness, or in live-confirmed mode creates the holder snapshot, locks the manifest, prepares the next batch, and executes the WBTC send.
+- `Official Live GO`: dry-runs launch readiness, or in live-confirmed mode creates the holder snapshot, locks the manifest, prepares the next batch, executes the WBTC send, and arms continuous epochs.
+- `Run Due Epoch`: cron/manual tick that only runs when the next displayed epoch time is due.
 - `Create Holder Snapshot`: same holder-source path as refresh, exposed in the snapshot workflow.
 - `Simulate Distribution`: computes holder weights, dust skips, payout estimates, and batch count without sending WBTC.
 - `Publish Receipt`: stores a durable local receipt record when no receipt webhook is configured.
@@ -29,6 +30,53 @@ These buttons run directly through Solana RPC and do not need third-party credit
 - `Buy WBTC`: builds an unsigned Jupiter swap transaction for the configured signer to sign and submit.
 - `Simulate Fee Claim`: builds the PumpPortal `collectCreatorFee` transaction locally without signing.
 - `Claim Creator Fees`: signs and submits the PumpPortal `collectCreatorFee` transaction with `CREATOR_KEYPAIR_PATH` when dry-run is disabled.
+
+## Continuous Epoch Automation
+
+Confirmed live GO stores an `epoch-automation` record and starts the epoch clock. Vercel cron calls `/api/epoch` every minute. The endpoint is idempotent: it returns `not_due` until the next displayed epoch end time, then runs one epoch and advances `nextEpochIndex`.
+
+Each due epoch runs this sequence:
+
+1. Claim Pump.fun creator fees for the configured coin.
+2. Refresh fee-wallet receipts.
+3. Buy WBTC through Jupiter using the configured cycle spend and signer.
+4. Read the distributor WBTC pool.
+5. Snapshot holders for `PUBLIC_TOKEN_MINT`.
+6. Compute weighted payouts using token balance and holding-time multiplier.
+7. Lock the manifest, prepare the batch, and distribute WBTC to payable holders.
+8. Call `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL` with the dashboard URL and epoch record so a screenshot can be stored.
+
+Required live epoch env:
+
+```env
+CRON_SECRET=...
+ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL=https://your-screenshot-worker.example/capture
+ADMIN_EPOCH_SCREENSHOT_URL=https://your-production-site.example
+CREATOR_FEE_DRY_RUN=false
+DISTRIBUTOR_DRY_RUN=false
+CREATOR_PRIVATE_KEY_BASE58=... # or CREATOR_KEYPAIR_PATH
+JUPITER_SWAP_PRIVATE_KEY_BASE58=... # or JUPITER_SWAP_KEYPAIR_PATH / DISTRIBUTOR_KEYPAIR_PATH
+DISTRIBUTOR_PRIVATE_KEY_BASE58=... # or DISTRIBUTOR_KEYPAIR_PATH
+MAX_CYCLE_SPEND_UI_AMOUNT=0.01
+```
+
+The screenshot webhook receives:
+
+```json
+{
+  "targetUrl": "https://your-production-site.example",
+  "epoch": {
+    "epochIndex": 0,
+    "status": "confirmed",
+    "manifestId": "...",
+    "batchId": "...",
+    "signature": "..."
+  },
+  "requestedAt": "2026-05-22T00:00:00.000Z"
+}
+```
+
+Return JSON with `screenshotUrl`, `imageUrl`, `url`, or `assetUrl`. The admin storage records that URL on the epoch and automation state.
 
 For direct holder snapshots through an indexed RPC, set:
 

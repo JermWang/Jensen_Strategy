@@ -2,6 +2,12 @@
   "outputDirectory": "preview",
   "cleanUrls": true,
   "trailingSlash": false,
+  "crons": [
+    {
+      "path": "/api/epoch",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

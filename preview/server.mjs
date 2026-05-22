@@ -9,7 +9,7 @@ const envRoot = dirname(root);
 const env = await loadEnv();
 Object.assign(process.env, env);
 const require = createRequire(import.meta.url);
-const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction } = require("../lib/admin-control.js");
+const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction, runScheduledEpoch } = require("../lib/admin-control.js");
 const { feeReceipts, holderSnapshot, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
 const port = Number(process.env.PORT || 4199);
 
@@ -49,6 +49,15 @@ function json(response, status, body) {
     "cache-control": "no-store"
   });
   response.end(JSON.stringify(body));
+}
+
+function cronAuthorized(headers) {
+  if (isAdminAuthorized(headers)) return true;
+  const secret = process.env.CRON_SECRET || "";
+  if (!secret) return false;
+  const authorization = headers.authorization || "";
+  const bearer = authorization.toLowerCase().startsWith("bearer ") ? authorization.slice(7).trim() : "";
+  return bearer === secret || headers["x-cron-secret"] === secret;
 }
 
 async function readJsonBody(request) {
@@ -105,6 +114,31 @@ createServer(async (request, response) => {
       json(response, 405, { ok: false, error: "Method not allowed." });
     } catch (error) {
       json(response, error.statusCode || 500, { ok: false, error: error.message || "Admin action failed." });
+    }
+    return;
+  }
+
+  if (url.pathname === "/api/epoch") {
+    if (!cronAuthorized(request.headers)) {
+      json(response, 401, { ok: false, error: process.env.CRON_SECRET ? "Epoch cron authorization failed." : adminAuthError() });
+      return;
+    }
+
+    try {
+      if (!["GET", "POST"].includes(request.method || "GET")) {
+        response.setHeader("allow", "GET, POST");
+        json(response, 405, { ok: false, error: "Method not allowed." });
+        return;
+      }
+      const body = request.method === "POST" ? await readJsonBody(request) : {};
+      const result = await runScheduledEpoch({
+        force: body.force === true || url.searchParams.get("force") === "true",
+        source: body.source || "cron",
+        payload: body.payload || {}
+      });
+      json(response, 200, { ok: true, action: "run-due-epoch", result });
+    } catch (error) {
+      json(response, error.statusCode || 500, { ok: false, error: error.message || "Epoch runner failed." });
     }
     return;
   }
