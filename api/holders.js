@@ -1,4 +1,5 @@
 const { requestUrl, sendJson } = require("../lib/vercel-api");
+const { buildDistributionPolicy, currentDistributionEpoch } = require("../lib/distribution-policy");
 const { fetchRpcHolderSnapshot, parseWalletList, toDashboardSnapshot } = require("../lib/rpc-holders");
 const { publicConfig, rpc } = require("../lib/vercel-api");
 
@@ -41,7 +42,8 @@ async function holderSnapshot(wallet) {
     excludedWallets
   });
 
-  return toDashboardSnapshot(snapshot, wallet || "", Number(process.env.HOLDER_ROUND_CAP || 128));
+  const roundCap = currentDistributionEpoch(buildDistributionPolicy(process.env)).holderCap;
+  return toDashboardSnapshot(snapshot, wallet || "", roundCap);
 }
 
 module.exports = async function handler(request, response) {

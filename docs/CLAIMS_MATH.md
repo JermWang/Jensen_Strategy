@@ -46,17 +46,21 @@ The distribution cadence should be configurable.
 Recommended default:
 
 ```text
-schedule = [3m, 5m, 10m, 15m, 30m, 1h, 2h, 4h, 8h, 12h, 24h]
+base_interval = 3m
+interval_multiplier = 2
+base_holder_cap = 128
+holder_cap_multiplier = 2
 ```
 
-The next interval is selected by epoch number:
+The next interval and holder inclusion cap are selected by epoch number:
 
 ```text
-interval_n = schedule[min(epoch_index, schedule.length - 1)]
+interval_n = base_interval * interval_multiplier ^ epoch_index
+holder_cap_n = base_holder_cap * holder_cap_multiplier ^ epoch_index
 next_airdrop_at = previous_airdrop_at + interval_n
 ```
 
-After the schedule reaches `24h`, continue repeating daily unless admin/governance changes the cadence.
+The schedule does not roll into a fixed daily repeat. It continues doubling by epoch unless admin/governance changes the cadence.
 
 The reward pool grows naturally as intervals increase:
 
@@ -64,7 +68,7 @@ The reward pool grows naturally as intervals increase:
 reward_pool_n = WBTC_acquired_during_interval_n + rolled_over_dust_n
 ```
 
-This creates small early airdrops for attention and proof-of-execution, then larger later airdrops as fees accumulate for longer windows.
+This creates small early airdrops for attention and proof-of-execution, then progressively larger and broader later airdrops as fees accumulate for longer windows and more holders become eligible.
 
 ## Loyalty Multiplier
 

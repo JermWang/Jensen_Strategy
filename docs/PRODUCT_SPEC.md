@@ -85,13 +85,14 @@ Eligible airdrop share is based on:
 
 Airdrops should use a deterministic distribution manifest so the website, community, and auditors can reproduce the exact recipient list and amounts.
 
-The schedule should start with frequent airdrops and expand over time:
+The schedule should start with frequent airdrops and expand exponentially over time:
 
 ```text
-3 minutes -> 5 minutes -> 10 minutes -> 15 minutes -> 30 minutes -> 1 hour -> 2 hours -> 4 hours -> 8 hours -> 12 hours -> 24 hours
+epoch interval = 3 minutes * 2^epoch_index
+holder cap = base holder cap * 2^epoch_index
 ```
 
-After the schedule reaches 24 hours, repeat daily unless the admin/governance config changes it.
+The interval and holder cap keep doubling by epoch unless the admin/governance config changes it.
 
 For failed transfers, dust amounts, or holders with missing WBTC token accounts, the project can either:
 

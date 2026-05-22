@@ -43,11 +43,12 @@ See `docs/ADMIN_OPERATIONS.md` and `.env.example` for the required `ADMIN_PASSWO
 
 1. Launch through Pump.fun with creator fees routed to a dedicated treasury wallet.
 2. Track the treasury wallet as the canonical creator-fee intake account.
-3. Keeper follows an expanding airdrop schedule: 3m, 5m, 10m, 15m, 30m, 1h, 2h, 4h, 8h, 12h, then 24h repeat.
-4. At each scheduled epoch, keeper converts collected fees into wrapped BTC on Solana if balances meet minimum thresholds.
-5. Indexer computes holder-time-weighted allocations for the distribution epoch.
-6. Distributor sends WBTC airdrops in batches, creating recipient ATAs when policy allows.
-7. Program records receipt hashes for the fee intake, swap, snapshot manifest, and each airdrop batch.
+3. Keeper follows an exponential airdrop schedule: the interval starts at 3 minutes and doubles every epoch forever.
+4. The holder inclusion cap also doubles every epoch, starting from the configured base cap.
+5. At each scheduled epoch, keeper converts collected fees into wrapped BTC on Solana if balances meet minimum thresholds.
+6. Indexer computes holder-time-weighted allocations for the distribution epoch.
+7. Distributor sends WBTC airdrops in batches, creating recipient ATAs when policy allows.
+8. Program records receipt hashes for the fee intake, swap, snapshot manifest, and each airdrop batch.
 
 ## Important Design Decision
 

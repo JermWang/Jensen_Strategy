@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { adminStatus, isAdminAuthorized, runAdminAction } = require("../lib/admin-control.js");
+const { buildDistributionPolicy, currentDistributionEpoch, distributionPreview } = require("../lib/distribution-policy.js");
 const { fetchRpcHolderSnapshot, parseWalletList, toDashboardSnapshot } = require("../lib/rpc-holders.js");
 const { tokenBalanceForOwner } = require("../lib/token-utils.js");
 const root = dirname(fileURLToPath(import.meta.url));
@@ -23,9 +24,6 @@ const types = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg"
 };
-
-const DEFAULT_DISTRIBUTION_SCHEDULE_SECONDS = "180,300,600,900,1800,3600,7200,14400,28800,43200,86400";
-const DEFAULT_DISTRIBUTION_SCHEDULE_LABELS = "3m,5m,10m,15m,30m,1h,2h,4h,8h,12h,24h";
 
 async function loadEnv() {
   const values = { ...process.env };
@@ -55,36 +53,15 @@ function json(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
-function parseCsvNumbers(value, fallback) {
-  const parsed = String(value || fallback)
-    .split(",")
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item > 0);
-  return parsed.length ? parsed : fallback.split(",").map(Number);
-}
-
-function parseCsvLabels(value, fallback) {
-  const parsed = String(value || fallback)
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  return parsed.length ? parsed : fallback.split(",");
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function publicConfig() {
   const devCreatorWallet = env.DEV_CREATOR_WALLET || "";
-  const distributionScheduleSeconds = parseCsvNumbers(
-    env.PUBLIC_DISTRIBUTION_SCHEDULE_SECONDS || env.DISTRIBUTION_SCHEDULE_SECONDS,
-    DEFAULT_DISTRIBUTION_SCHEDULE_SECONDS
-  );
-  const distributionScheduleLabels = parseCsvLabels(
-    env.PUBLIC_DISTRIBUTION_SCHEDULE_LABELS || env.DISTRIBUTION_SCHEDULE_LABELS,
-    DEFAULT_DISTRIBUTION_SCHEDULE_LABELS
-  );
+  const distributionPolicy = buildDistributionPolicy(env);
+  const distributionEpoch = currentDistributionEpoch(distributionPolicy);
+  const distributionSchedule = distributionPreview(distributionPolicy);
   return {
     cluster: env.SOLANA_CLUSTER || "mainnet-beta",
     rpcConfigured: Boolean(env.SOLANA_RPC_URL),
@@ -101,13 +78,20 @@ function publicConfig() {
     creatorFeeClaimPublicKey: env.CREATOR_PUBLIC_KEY || devCreatorWallet,
     pumpPortalLocalApiUrl: env.PUMPPORTAL_LOCAL_API_URL || "https://pumpportal.fun/api/trade-local",
     holderIndexerUrlConfigured: Boolean(env.HOLDER_INDEXER_API_URL),
-    distributionStartedAt: env.PUBLIC_DISTRIBUTION_STARTED_AT || env.DISTRIBUTION_STARTED_AT || "",
-    distributionScheduleSeconds,
-    distributionScheduleLabels,
-    distributionIntervalSeconds: Number(
-      env.PUBLIC_DISTRIBUTION_INTERVAL_SECONDS || env.DISTRIBUTION_INTERVAL_SECONDS || distributionScheduleSeconds[2] || 600
-    ),
-    distributionIntervalLabel: env.PUBLIC_DISTRIBUTION_INTERVAL_LABEL || distributionScheduleLabels[2] || "10m",
+    distributionStartedAt: distributionPolicy.startedAt,
+    distributionMode: distributionPolicy.mode,
+    distributionBaseIntervalSeconds: distributionPolicy.baseIntervalSeconds,
+    distributionIntervalMultiplier: distributionPolicy.intervalMultiplier,
+    distributionBaseHolderCap: distributionPolicy.baseHolderCap,
+    distributionHolderCapMultiplier: distributionPolicy.holderCapMultiplier,
+    distributionPreviewEpochs: distributionPolicy.previewEpochs,
+    distributionScheduleSeconds: distributionSchedule.map((step) => step.seconds),
+    distributionScheduleLabels: distributionSchedule.map((step) => step.label),
+    distributionHolderCaps: distributionSchedule.map((step) => step.holderCap),
+    currentDistributionEpoch: distributionEpoch,
+    distributionIntervalSeconds: distributionEpoch.seconds,
+    distributionIntervalLabel: distributionEpoch.label,
+    distributionRoundCap: distributionEpoch.holderCap,
     solscanBaseUrl: env.PUBLIC_SOLSCAN_BASE_URL || "https://solscan.io",
     coingeckoApiUrl: env.PUBLIC_COINGECKO_API_URL || "https://api.coingecko.com/api/v3"
   };
@@ -245,7 +229,8 @@ async function holderSnapshot(wallet) {
     excludedWallets
   });
 
-  return toDashboardSnapshot(snapshot, wallet || "", Number(env.HOLDER_ROUND_CAP || 128));
+  const roundCap = currentDistributionEpoch(buildDistributionPolicy(env)).holderCap;
+  return toDashboardSnapshot(snapshot, wallet || "", roundCap);
 }
 
 async function readJsonBody(request) {

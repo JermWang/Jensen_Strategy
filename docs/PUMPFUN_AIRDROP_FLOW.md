@@ -71,15 +71,16 @@ manifest_hash = sha256(canonical_json(manifest))
 
 ## Expanding Airdrop Cadence
 
-The airdrop schedule should start fast and become progressively slower so early holders see immediate proof-of-life distributions while later payouts become larger.
+The airdrop schedule should start fast and become progressively slower so early holders see immediate proof-of-life distributions while later payouts become larger and include more holders.
 
 Recommended default:
 
 ```text
-3 minutes -> 5 minutes -> 10 minutes -> 15 minutes -> 30 minutes -> 1 hour -> 2 hours -> 4 hours -> 8 hours -> 12 hours -> 24 hours
+interval_n = 3 minutes * 2^epoch_index
+holder_cap_n = 128 holders * 2^epoch_index
 ```
 
-After the final step, continue at the final interval unless governance/admin config changes it.
+Both values continue doubling unless governance/admin config changes it.
 
 Each interval creates one distribution epoch:
 
@@ -89,7 +90,7 @@ epoch_end = scheduled_airdrop_at
 reward_pool = WBTC acquired since previous epoch + rolled-over dust
 ```
 
-This means the first airdrops are small and frequent, while later airdrops naturally get larger because more creator fees accumulate between distributions.
+This means the first airdrops are small and frequent, while later airdrops naturally get larger and broader because more creator fees accumulate between distributions and the inclusion cap expands.
 
 ## Airdrop Execution
 
@@ -111,7 +112,7 @@ If a recipient has no WBTC associated token account, the project must choose:
 
 ## Recommended MVP Policy
 
-- Use expanding airdrop intervals: 3m, 5m, 10m, 15m, 30m, 1h, 2h, 4h, 8h, 12h, then 24h repeat.
+- Use exponential airdrop intervals and holder inclusion caps: both start from configured base values and double each epoch.
 - Swap creator fees into WBTC at each distribution epoch if the fee balance is above the minimum swap threshold.
 - Direct-send only above a minimum WBTC threshold.
 - Create recipient ATAs only for payouts above the threshold.

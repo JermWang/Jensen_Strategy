@@ -1369,6 +1369,7 @@
             <h2>Next Slice</h2>
             <div class="countdown" id="countdown">08:42</div>
             <div class="metric"><span>Current Interval</span><strong class="green" id="interval">10 minutes</strong></div>
+            <div class="metric"><span>Holder Cap</span><strong class="green" id="epochHolderCap">128</strong></div>
             <div class="metric"><span>Epoch Status</span><strong class="green" id="cycleStatus">Syncing</strong></div>
             <div class="slice-schedule" id="sliceSchedule" aria-label="Distribution schedule"></div>
           </article>
@@ -1505,6 +1506,7 @@
       const poolEl = document.querySelector("#pool");
       const countdownEl = document.querySelector("#countdown");
       const intervalEl = document.querySelector("#interval");
+      const epochHolderCapEl = document.querySelector("#epochHolderCap");
       const cycleStatusEl = document.querySelector("#cycleStatus");
       const sliceScheduleEl = document.querySelector("#sliceSchedule");
       const creatorFeesEl = document.querySelector("#creatorFees");
@@ -1588,86 +1590,87 @@
         return hours > 0 ? `${hours}:${minutes}:${seconds}` : `${minutes}:${seconds}`;
       }
 
-      function distributionSchedule() {
-        const configured = Array.isArray(state.config?.distributionScheduleSeconds)
-          ? state.config.distributionScheduleSeconds
-          : [];
-        const seconds = configured
-          .map((item) => Number(item))
-          .filter((item) => Number.isFinite(item) && item > 0);
-        const labels = Array.isArray(state.config?.distributionScheduleLabels)
-          ? state.config.distributionScheduleLabels
-          : [];
-        const fallbackSeconds = seconds.length ? seconds : [180, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 43200, 86400];
-        const fallbackLabels = ["3m", "5m", "10m", "15m", "30m", "1h", "2h", "4h", "8h", "12h", "24h"];
-        return fallbackSeconds.map((secondsValue, index) => ({
-          seconds: secondsValue,
-          label: labels[index] || fallbackLabels[index] || `${Math.round(secondsValue / 60)}m`
-        }));
+      function formatDurationLabel(totalSeconds) {
+        const safeSeconds = Math.max(1, Math.round(totalSeconds));
+        const days = Math.floor(safeSeconds / 86400);
+        const hours = Math.floor((safeSeconds % 86400) / 3600);
+        const minutes = Math.floor((safeSeconds % 3600) / 60);
+        const seconds = safeSeconds % 60;
+        if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+        if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+        if (minutes > 0) return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
+        return `${seconds}s`;
+      }
+
+      function boundedPower(base, multiplier, exponent) {
+        const value = base * multiplier ** exponent;
+        return Number.isFinite(value) && value < Number.MAX_SAFE_INTEGER ? value : Number.MAX_SAFE_INTEGER;
+      }
+
+      function distributionStep(index) {
+        const secondsList = Array.isArray(state.config?.distributionScheduleSeconds) ? state.config.distributionScheduleSeconds : [];
+        const labels = Array.isArray(state.config?.distributionScheduleLabels) ? state.config.distributionScheduleLabels : [];
+        const holderCaps = Array.isArray(state.config?.distributionHolderCaps) ? state.config.distributionHolderCaps : [];
+        const baseInterval = Number(state.config?.distributionBaseIntervalSeconds || secondsList[0] || 180);
+        const intervalMultiplier = Number(state.config?.distributionIntervalMultiplier || 2);
+        const baseHolderCap = Number(state.config?.distributionBaseHolderCap || holderCaps[0] || 128);
+        const holderCapMultiplier = Number(state.config?.distributionHolderCapMultiplier || 2);
+        const secondsValue = Number(secondsList[index]) || boundedPower(baseInterval, intervalMultiplier, index);
+        const holderCap = Number(holderCaps[index]) || boundedPower(baseHolderCap, holderCapMultiplier, index);
+
+        return {
+          epochIndex: index,
+          seconds: Math.max(1, Math.round(secondsValue)),
+          holderCap: Math.max(1, Math.floor(holderCap)),
+          label: labels[index] || formatDurationLabel(secondsValue)
+        };
+      }
+
+      function distributionSchedule(currentIndex = 0) {
+        const previewCount = Math.max(1, Number(state.config?.distributionPreviewEpochs || 12));
+        const start = Math.max(0, currentIndex >= previewCount ? currentIndex - Math.floor(previewCount / 2) : 0);
+        return Array.from({ length: previewCount }, (_, offset) => distributionStep(start + offset));
       }
 
       function distributionStartMs() {
         const configured = Date.parse(state.config?.distributionStartedAt || "");
         if (Number.isFinite(configured)) return configured;
-        const key = "btcPizzaDistributionStartedAt";
-        const stored = Date.parse(localStorage.getItem(key) || "");
-        if (Number.isFinite(stored)) return stored;
-        const now = Date.now();
-        localStorage.setItem(key, new Date(now).toISOString());
-        return now;
+        const serverEpoch = state.config?.currentDistributionEpoch;
+        const elapsedSeconds = Number(serverEpoch?.elapsedSeconds || 0);
+        return Date.now() - Math.max(0, elapsedSeconds) * 1000;
       }
 
       function distributionCycle(nowMs = Date.now()) {
-        const schedule = distributionSchedule();
         const startMs = distributionStartMs();
         const elapsed = Math.max(0, Math.floor((nowMs - startMs) / 1000));
-        let consumed = 0;
         let epochIndex = 0;
-        let scheduleIndex = 0;
+        let remainingElapsed = elapsed;
+        let step = distributionStep(epochIndex);
 
-        for (let index = 0; index < schedule.length; index += 1) {
-          const interval = schedule[index].seconds;
-          if (elapsed < consumed + interval) {
-            scheduleIndex = index;
-            epochIndex = index;
-            const elapsedInInterval = elapsed - consumed;
-            return {
-              schedule,
-              scheduleIndex,
-              epochIndex,
-              interval,
-              label: schedule[index].label,
-              remaining: interval - elapsedInInterval,
-              progress: elapsedInInterval / interval,
-              repeatsDaily: false
-            };
-          }
-          consumed += interval;
+        while (remainingElapsed >= step.seconds && epochIndex < 256) {
+          remainingElapsed -= step.seconds;
+          epochIndex += 1;
+          step = distributionStep(epochIndex);
         }
 
-        const lastIndex = schedule.length - 1;
-        const lastInterval = schedule[lastIndex].seconds;
-        const repeatedElapsed = elapsed - consumed;
-        const repeatCount = Math.floor(repeatedElapsed / lastInterval);
-        const elapsedInInterval = repeatedElapsed % lastInterval;
         return {
-          schedule,
-          scheduleIndex: lastIndex,
-          epochIndex: lastIndex + repeatCount + 1,
-          interval: lastInterval,
-          label: schedule[lastIndex].label,
-          remaining: lastInterval - elapsedInInterval,
-          progress: elapsedInInterval / lastInterval,
-          repeatsDaily: true
+          schedule: distributionSchedule(epochIndex),
+          scheduleIndex: epochIndex,
+          epochIndex,
+          interval: step.seconds,
+          label: step.label,
+          holderCap: step.holderCap,
+          remaining: step.seconds - remainingElapsed,
+          progress: remainingElapsed / step.seconds
         };
       }
 
       function renderSliceSchedule(cycle) {
         if (!sliceScheduleEl || !cycle?.schedule) return;
         sliceScheduleEl.innerHTML = cycle.schedule
-          .map((step, index) => {
-            const status = index < cycle.scheduleIndex ? "done" : index === cycle.scheduleIndex ? "active" : "";
-            return `<div class="slice-step ${status}">${escapeHtml(step.label)}</div>`;
+          .map((step) => {
+            const status = step.epochIndex < cycle.scheduleIndex ? "done" : step.epochIndex === cycle.scheduleIndex ? "active" : "";
+            return `<div class="slice-step ${status}" title="${escapeHtml(step.holderCap.toLocaleString())} holders">${escapeHtml(step.label)}</div>`;
           })
           .join("");
       }
@@ -1678,9 +1681,8 @@
         state.remaining = cycle.remaining;
         countdownEl.textContent = formatTime(state.remaining);
         intervalEl.textContent = cycle.label;
-        cycleStatusEl.textContent = cycle.repeatsDaily
-          ? `Epoch ${cycle.epochIndex + 1} daily`
-          : `Epoch ${cycle.epochIndex + 1}`;
+        epochHolderCapEl.textContent = cycle.holderCap.toLocaleString();
+        cycleStatusEl.textContent = `Epoch ${cycle.epochIndex + 1} doubles`;
         renderSliceSchedule(cycle);
       }
 

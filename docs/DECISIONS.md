@@ -35,21 +35,22 @@ Recommended:
 
 ## Airdrop Cadence
 
-Decision: expanding airdrop intervals.
+Decision: exponential airdrop intervals and holder caps.
 
 Default:
 
 ```text
-3 minutes -> 5 minutes -> 10 minutes -> 15 minutes -> 30 minutes -> 1 hour -> 2 hours -> 4 hours -> 8 hours -> 12 hours -> 24 hours
+interval_n = 3 minutes * 2^epoch_index
+holder_cap_n = 128 holders * 2^epoch_index
 ```
 
-After the final step, repeat every 24 hours unless admin/governance changes the schedule.
+Both values continue doubling unless admin/governance changes the schedule.
 
 Open details:
 
 - Decide whether the schedule starts at token launch or first confirmed creator-fee intake.
 - Decide minimum fee balance required to execute a swap/distribution.
-- Decide whether skipped low-balance epochs advance the schedule or retry the same interval.
+- Decide whether skipped low-balance epochs advance the exponential schedule or retry the same interval.
 
 ## Holder Score
 

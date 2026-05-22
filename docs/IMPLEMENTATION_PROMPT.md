@@ -67,8 +67,9 @@ Core product requirements:
    - deterministic snapshot JSON output.
    - WebSocket or Server-Sent Events stream for fee intake, swap, manifest, batch, holder estimate, and countdown updates.
 6. Keeper supports:
-   - cron-compatible execution using an expanding interval schedule.
-   - default schedule: 3m, 5m, 10m, 15m, 30m, 1h, 2h, 4h, 8h, 12h, then 24h repeat.
+   - cron-compatible execution using an exponential interval schedule.
+   - default schedule: interval starts at 3m and doubles every epoch forever.
+   - holder inclusion cap starts from the configured base cap and doubles every epoch forever.
    - PumpFunCreatorFeeSource adapter.
    - swap adapter interface.
    - dry-run mode.
