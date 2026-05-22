@@ -13,7 +13,8 @@ import {
 } from "@solana/web3.js";
 
 const require = createRequire(import.meta.url);
-const { fetchRpcHolderSnapshot } = require("../lib/rpc-holders.js");
+const { fetchHolderSnapshot } = require("../lib/rpc-holders.js");
+const { rpcRequest } = require("../lib/solana-rpc.js");
 const { associatedTokenAddress, distributeWbtcBatch } = require("../lib/wbtc-distributor.js");
 
 const TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -32,14 +33,7 @@ function loadEnv(file = ".env") {
 }
 
 async function mainnetRpc(method, params) {
-  const response = await fetch(process.env.SOLANA_RPC_URL, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "devnet-holder-scan", method, params })
-  });
-  const body = await response.json();
-  if (body.error) throw new Error(body.error.message || JSON.stringify(body.error));
-  return body.result;
+  return await rpcRequest(method, params, process.env);
 }
 
 function initializeMintInstruction(mint, decimals, mintAuthority, freezeAuthority = null) {
@@ -140,7 +134,7 @@ async function fundDevnetWallet(connection, wallet) {
 async function main() {
   const env = loadEnv();
   const dryRunBuildOnly = process.argv.includes("--dry-run-build");
-  const snapshot = await fetchRpcHolderSnapshot({
+  const snapshot = await fetchHolderSnapshot({
     tokenMint: env.PUBLIC_TOKEN_MINT,
     rpc: mainnetRpc,
     minBalanceUi: Number(env.HOLDER_SNAPSHOT_MIN_BALANCE || 0),
@@ -168,12 +162,14 @@ async function main() {
       SOLANA_RPC_URL: process.env.SOLANA_RPC_URL,
       DISTRIBUTOR_DRY_RUN: process.env.DISTRIBUTOR_DRY_RUN,
       DISTRIBUTOR_KEYPAIR_PATH: process.env.DISTRIBUTOR_KEYPAIR_PATH,
+      DISTRIBUTOR_PRIVATE_KEY_BASE58: process.env.DISTRIBUTOR_PRIVATE_KEY_BASE58,
       CREATE_RECIPIENT_ATAS: process.env.CREATE_RECIPIENT_ATAS
     };
     try {
       process.env.SOLANA_RPC_URL = devnetRpcUrl;
       process.env.DISTRIBUTOR_DRY_RUN = "true";
       process.env.DISTRIBUTOR_KEYPAIR_PATH = keypairPath;
+      process.env.DISTRIBUTOR_PRIVATE_KEY_BASE58 = "";
       process.env.CREATE_RECIPIENT_ATAS = "true";
 
       const result = await distributeWbtcBatch({
@@ -252,6 +248,7 @@ async function main() {
     SOLANA_RPC_URL: process.env.SOLANA_RPC_URL,
     DISTRIBUTOR_DRY_RUN: process.env.DISTRIBUTOR_DRY_RUN,
     DISTRIBUTOR_KEYPAIR_PATH: process.env.DISTRIBUTOR_KEYPAIR_PATH,
+    DISTRIBUTOR_PRIVATE_KEY_BASE58: process.env.DISTRIBUTOR_PRIVATE_KEY_BASE58,
     CREATE_RECIPIENT_ATAS: process.env.CREATE_RECIPIENT_ATAS
   };
 
@@ -259,6 +256,7 @@ async function main() {
     process.env.SOLANA_RPC_URL = devnetRpcUrl;
     process.env.DISTRIBUTOR_DRY_RUN = "false";
     process.env.DISTRIBUTOR_KEYPAIR_PATH = keypairPath;
+    process.env.DISTRIBUTOR_PRIVATE_KEY_BASE58 = "";
     process.env.CREATE_RECIPIENT_ATAS = "true";
 
     const result = await distributeWbtcBatch({
