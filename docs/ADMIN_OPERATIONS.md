@@ -183,7 +183,7 @@ Use small `MAX_RECIPIENTS_PER_BATCH` values first because creating recipient ATA
 
 ## Durable Admin Storage
 
-For production, set `DATABASE_URL` to a Neon/Postgres connection string. The admin backend creates these tables automatically on first use:
+For production, set `DATABASE_URL` to a Neon/Postgres connection string. The Vercel/Neon aliases `POSTGRES_URL`, `POSTGRES_PRISMA_URL`, and `POSTGRES_URL_NON_POOLING` are also accepted. The admin backend creates these tables automatically on first use:
 
 ```sql
 admin_records
