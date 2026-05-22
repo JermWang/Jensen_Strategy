@@ -12,7 +12,6 @@ const require = createRequire(import.meta.url);
 const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction, runScheduledEpoch } = require("../lib/admin-control.js");
 const { feeReceipts, holderSnapshot, operationsSummary, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
 const { cronSecretMatches } = require("../lib/secret-auth.js");
-const { epochTick, isCronAuthorized: rewardCronAuthorized } = require("../lib/rewards/epochs.js");
 const { holdersPayload, receiptsPayload, statusPayload } = require("../lib/rewards/snapshotCache.js");
 const { lookupWallet } = require("../lib/rewards/ticketLookup.js");
 const port = Number(process.env.PORT || 4199);
@@ -191,12 +190,21 @@ createServer(async (request, response) => {
       json(response, 405, { ok: false, error: "Method not allowed." });
       return;
     }
-    if (!rewardCronAuthorized(request.headers)) {
+    if (!cronAuthorized(request.headers, url.searchParams)) {
       json(response, 401, { ok: false, error: "Cron authorization failed." });
       return;
     }
-    const body = await readJsonBody(request);
-    json(response, 200, await epochTick({ source: body.source || "cron-job.org", task: body.task || "epoch-tick" }));
+    try {
+      const body = await readJsonBody(request);
+      const result = await runScheduledEpoch({
+        force: body.force === true,
+        source: body.source || "cron-job.org",
+        payload: body.payload || {}
+      });
+      json(response, 200, { ok: true, action: "run-due-epoch", result });
+    } catch (error) {
+      json(response, error.statusCode || 500, { ok: false, error: error.message || "Epoch runner failed." });
+    }
     return;
   }
 

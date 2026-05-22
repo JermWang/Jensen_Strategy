@@ -35,26 +35,28 @@ The hard part is automatic distribution at scale. A Solana program cannot iterat
 
 The static preview includes a password-gated admin operations console at `/admin`.
 
-Built-in controls validate config, refresh fee receipts, scan holders directly through Solana RPC, check the WBTC vault, create holder snapshots, simulate weighted WBTC distributions, record receipts, lock manifests, and prepare idempotent distribution batches. Confirmed `Official Live GO` now also arms the continuous epoch runner: an external cron service calls `/api/epoch`, which only runs when the displayed epoch time is due, then claims creator fees, buys WBTC, snapshots holders for `PUBLIC_TOKEN_MINT`, distributes to holders by weighted balance, and records screenshot evidence through `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL`.
+Built-in controls validate config, refresh fee receipts, scan holders directly through Solana RPC, check the WBTC vault, create holder snapshots, simulate weighted WBTC distributions, record receipts, lock manifests, and prepare idempotent distribution batches. `Official Live GO` is the only admin start button: after it arms automation, an external cron service calls the cron endpoint every minute. When an epoch is due, the cron runner claims creator fees, buys WBTC, snapshots holders for the token mint, distributes WBTC to holders by weighted balance, and records screenshot evidence through `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL`.
 
 See `docs/ADMIN_OPERATIONS.md` and `.env.example` for the required `ADMIN_PASSWORD`, `CRON_SECRET`, RPC holder fallback, signing keys, and optional screenshot/per-action webhook variables.
+
+The live env model is one wallet by default: `WALLET`, `WALLET_PRIVATE_KEY`, `TOKEN_MINT`, `REWARD_MINT`, `SOLANA_RPC_URL`, and `CRON_SECRET`. Split creator/swap/distributor envs are routing overrides, not the default setup.
 
 ### cron-job.org setup
 
 Use one fixed external heartbeat. The database decides whether the current epoch is due.
 
 ```text
-URL: https://www.btcpizzaanniversary.xyz/api/cron/epoch-tick
+URL: https://www.btcpizzastrategy.xyz/api/cron/epoch-tick
 Method: POST
 Headers:
-  Authorization: Bearer <existing admin or cron secret>
   Content-Type: application/json
+  Authorization: Bearer <CRON_SECRET>
 Body:
-  { "source": "cron-job.org", "task": "epoch-tick" }
+  { "source": "cron-job.org" }
 Frequency: every 1 minute
 ```
 
-Do not add Vercel Cron jobs. The endpoint is lock-protected, idempotent, and cheap when no epoch is due.
+Do not add Vercel Cron jobs. The endpoint is lock-protected, idempotent, and cheap when no epoch is due. Do not include `"task":"epoch-tick"` in the cron body; the production cron endpoint always runs the full due-epoch automation path after `Official Live GO` has armed it.
 
 ## MVP Recommendation
 

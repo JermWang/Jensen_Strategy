@@ -13,10 +13,10 @@ For Vercel/mainnet, add the variables from `.env.mainnet.example` to the project
 These buttons run directly through Solana RPC and do not need third-party credits:
 
 - `Validate Config`: checks admin, RPC, wallet, mint, and action readiness.
-- `Refresh Fee Receipts`: reads recent `PUBLIC_FEE_WALLET` signatures and SOL balance.
-- `Refresh Holder List`: scans token accounts for `PUBLIC_TOKEN_MINT` through the configured holder provider.
-- `Check WBTC Vault`: reads the configured `PUBLIC_DISTRIBUTOR_WALLET` balance for `PUBLIC_WBTC_MINT`.
-- `Official Live GO`: dry-runs launch readiness, or in live-confirmed mode creates the holder snapshot, locks the manifest, prepares the next batch, executes the WBTC send, and arms continuous epochs.
+- `Refresh Fee Receipts`: reads recent `WALLET` signatures and SOL balance.
+- `Refresh Holder List`: scans token accounts for `TOKEN_MINT` through the configured holder provider.
+- `Check WBTC Vault`: reads the configured `WALLET` balance for `REWARD_MINT`.
+- `Official Live GO`: validates live readiness and arms continuous epochs. Cron performs the actual epoch work after that.
 - `Run Due Epoch`: cron/manual tick that only runs when the next displayed epoch time is due.
 - `Create Holder Snapshot`: same holder-source path as refresh, exposed in the snapshot workflow.
 - `Simulate Distribution`: computes holder weights, dust skips, payout estimates, and batch count without sending WBTC.
@@ -33,23 +33,38 @@ These buttons run directly through Solana RPC and do not need third-party credit
 
 ## Continuous Epoch Automation
 
-Confirmed live GO stores an `epoch-automation` record and starts the epoch clock. An external cron service calls `/api/epoch` every minute. The endpoint is idempotent: it returns `not_due` until the next displayed epoch end time, then runs one epoch and advances `nextEpochIndex`.
+Confirmed live GO stores an `epoch-automation` record and starts the epoch clock. That is the only admin action required to begin automation. After that, an external cron service calls `/api/cron/epoch-tick` every minute. The endpoint is idempotent: it returns `not_due` until the next displayed epoch end time, then runs the full due epoch and advances `nextEpochIndex`.
+
+The cron runner owns every post-start epoch action:
+
+1. Claim Pump.fun creator fees for the configured wallet.
+2. Buy WBTC through Jupiter using the configured signer and spend limit.
+3. Read the distributor WBTC pool.
+4. Snapshot holders for the configured token mint.
+5. Compute proportional payouts.
+6. Lock the manifest and prepare the next batch.
+7. Send WBTC to payable holders.
+8. Record receipts, epoch status, and optional screenshot evidence.
+
+Do not use admin buttons as part of normal epoch operation after `Official Live GO` is armed. Admin remains for setup, emergency pause/retry, and manual diagnostics.
 
 This project does not define Vercel Cron jobs in `vercel.json`. Vercel Hobby cron is limited to daily cadence, while the launch runner needs minute-level checks. Use cronjob.org or another external scheduler instead.
 
 cronjob.org setup:
 
 ```text
-URL: https://www.btcpizzaanniversary.xyz/api/cron/epoch-tick
+URL: https://www.btcpizzastrategy.xyz/api/cron/epoch-tick
 Method: POST
-Headers: Authorization: Bearer <CRON_SECRET or ADMIN_API_TOKEN>
-Body: { "source": "cron-job.org", "task": "epoch-tick" }
+Headers:
+  Content-Type: application/json
+  Authorization: Bearer <CRON_SECRET>
+Body: { "source": "cron-job.org" }
 Schedule: every 1 minute
 Expected idle response: {"ok":true,"action":"run-due-epoch","result":{"status":"idle",...}}
 Expected armed response before due time: {"ok":true,"action":"run-due-epoch","result":{"status":"not_due",...}}
 ```
 
-The endpoint also accepts `x-cron-secret: <CRON_SECRET>`. Keep the raw secret out of commits, screenshots, and public cron logs.
+The endpoint also accepts `x-cron-secret: <CRON_SECRET>`. Keep the raw secret out of commits, screenshots, and public cron logs. Do not send `"task":"epoch-tick"` in production cron requests; the cron endpoint now always calls the full due-epoch automation runner.
 
 Each due epoch runs this sequence:
 
@@ -57,7 +72,7 @@ Each due epoch runs this sequence:
 2. Refresh fee-wallet receipts.
 3. Buy WBTC through Jupiter using the configured cycle spend and signer.
 4. Read the distributor WBTC pool.
-5. Snapshot holders for `PUBLIC_TOKEN_MINT`.
+5. Snapshot holders for `TOKEN_MINT`.
 6. Compute proportional payouts using token balance at the epoch snapshot.
 7. Lock the manifest, prepare the batch, and distribute WBTC to payable holders.
 8. If `ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL` is configured, call it with the dashboard URL and epoch record so a screenshot can be stored.
@@ -65,17 +80,22 @@ Each due epoch runs this sequence:
 Required live epoch env:
 
 ```env
+ADMIN_PASSWORD=...
+SOLANA_RPC_URL=...
+WALLET=<creator/fee/distributor wallet unless routing overrides are set>
+WALLET_PRIVATE_KEY=...
+TOKEN_MINT=...
+REWARD_MINT=9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E
 CRON_SECRET=...
+MAX_CYCLE_SPEND_UI_AMOUNT=0.01
 # Optional:
 ADMIN_EPOCH_SCREENSHOT_WEBHOOK_URL=https://your-screenshot-worker.example/capture
 ADMIN_EPOCH_SCREENSHOT_URL=https://your-production-site.example
 CREATOR_FEE_DRY_RUN=false
 DISTRIBUTOR_DRY_RUN=false
-CREATOR_PRIVATE_KEY_BASE58=... # or CREATOR_KEYPAIR_PATH
-JUPITER_SWAP_PRIVATE_KEY_BASE58=... # or JUPITER_SWAP_KEYPAIR_PATH / DISTRIBUTOR_KEYPAIR_PATH
-DISTRIBUTOR_PRIVATE_KEY_BASE58=... # or DISTRIBUTOR_KEYPAIR_PATH
-MAX_CYCLE_SPEND_UI_AMOUNT=0.01
 ```
+
+The default routing is intentionally simple: `WALLET` receives/controls fees, swaps, and WBTC distribution, and `WALLET_PRIVATE_KEY` signs those live actions. Only set `CREATOR_*`, `JUPITER_SWAP_*`, or `DISTRIBUTOR_*` overrides if those responsibilities are intentionally split across different wallets.
 
 The screenshot webhook receives:
 
@@ -101,7 +121,7 @@ For direct holder snapshots through an indexed RPC, set:
 HOLDER_SNAPSHOT_PROVIDER=helius
 ENABLE_RPC_HOLDER_FALLBACK=true
 HELIUS_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
-PUBLIC_TOKEN_MINT=...
+TOKEN_MINT=...
 SOLANA_RPC_URL=...
 ```
 
@@ -112,7 +132,7 @@ For Pump.fun / Token-2022 mints, the safer production setup is:
 ```env
 HOLDER_SNAPSHOT_PROVIDER=helius
 HELIUS_API_KEY=...
-PUBLIC_TOKEN_MINT=...
+TOKEN_MINT=...
 SOLANA_RPC_URL=...
 ```
 
@@ -176,7 +196,7 @@ MAX_CYCLE_SPEND_UI_AMOUNT=0.01
 MAX_SLIPPAGE_BPS=100
 ```
 
-Use `Preview WBTC Buy` first. It calls Jupiter `/quote` with `inputMint=So11111111111111111111111111111111111111112` and `outputMint=PUBLIC_WBTC_MINT`. That input mint is Solana WSOL, which Jupiter also uses for native SOL routes.
+Use `Preview WBTC Buy` first. It calls Jupiter `/quote` with `inputMint=So11111111111111111111111111111111111111112` and `outputMint=REWARD_MINT`. That input mint is Solana WSOL, which Jupiter also uses for native SOL routes.
 
 Use `Buy WBTC` to build an unsigned Jupiter `/swap` transaction. The dashboard does not sign the transaction; your keeper, wallet, Squads signer, or custody service must sign and submit the returned `swapTransaction`.
 
@@ -205,18 +225,18 @@ Research references:
 - Pump.fun's own fees page documents creator fees as the portion of trade fees paid to the token creator.
 - PumpPortal documents `collectCreatorFee` through `https://pumpportal.fun/api/trade-local`.
 
-Recommended env:
+Default env:
 
 ```env
-DEV_CREATOR_WALLET=<creator/dev wallet public key>
-CREATOR_KEYPAIR_PATH=C:\secure\bitcoin-pizza-strategy-creator.json
+WALLET=<creator/dev wallet public key>
+WALLET_PRIVATE_KEY=...
 CREATOR_FEE_DRY_RUN=false
 CREATOR_FEE_PRIORITY_FEE_SOL=0.000001
 CREATOR_FEE_POOL=pump
 PUMPPORTAL_LOCAL_API_URL=https://pumpportal.fun/api/trade-local
 ```
 
-Do not paste private keys into chat. Put the creator wallet keypair in a local file and point `CREATOR_KEYPAIR_PATH` at it. `CREATOR_PRIVATE_KEY_BASE58` exists for emergency local testing only; prefer the file path.
+Do not paste private keys into chat. `WALLET_PRIVATE_KEY` is the default signer. Use `CREATOR_KEYPAIR_PATH` or `CREATOR_PRIVATE_KEY_BASE58` only if fee claiming is intentionally routed to a different creator wallet.
 
 For Pump.fun claims, PumpPortal notes that creator fees are claimed all at once and `mint` is not required. For Meteora DBC claims, pass `pool=meteora-dbc` and `mint=<token mint>` in the admin payload.
 
@@ -224,13 +244,13 @@ For Pump.fun claims, PumpPortal notes that creator fees are claimed all at once 
 
 The distributor button now runs inside this repo. It reads the latest prepared batch, derives each recipient's WBTC associated token account, creates ATAs idempotently when `CREATE_RECIPIENT_ATAS=true`, and sends SPL Token `TransferChecked` instructions.
 
-Required live-send env:
+Default live-send env:
 
 ```env
 SOLANA_RPC_URL=...
-PUBLIC_DISTRIBUTOR_WALLET=<must match distributor keypair public key>
-PUBLIC_WBTC_MINT=9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E
-DISTRIBUTOR_KEYPAIR_PATH=C:\secure\bitcoin-pizza-strategy-distributor.json
+WALLET=<must match distribution signer public key unless routing overrides are set>
+WALLET_PRIVATE_KEY=...
+REWARD_MINT=9n4nbM75f5Ui33ZbPYXn59EwSgE8CGsHtAeTH5YFeJ9E
 DISTRIBUTOR_DRY_RUN=false
 CREATE_RECIPIENT_ATAS=true
 MAX_RECIPIENTS_PER_BATCH=4
@@ -275,15 +295,15 @@ Stored objects:
 
 ## Admin Console Workflow
 
-The dashboard is organized around the manual operator flow:
+Manual admin actions are diagnostics and emergency controls, not the normal epoch path:
 
 ```text
 Claim Fees -> Buy WBTC -> Snapshot Holders -> Lock Snapshot -> Simulate Distribution -> Execute Distribution -> Verify Results
 ```
 
-The `Official Live GO` control uses that same backend wiring for the airdrop leg. Keep `Dry run` enabled first; it checks config, fee receipts, WBTC vault, holders, and payout math. With `Dry run` off and `Confirm live` enabled, it uses the reward pool from the payload builder, or the current distributor WBTC balance when the field is empty, then locks the snapshot, generates the batch, and sends WBTC. Add `"executeDistribution": false` in the raw JSON payload if you want it to stop after preparing the batch.
+The `Official Live GO` control only validates setup and arms automation. With `Dry run` off and `Confirm live` enabled, it does not claim fees, buy WBTC, snapshot holders, lock manifests, generate batches, or send WBTC. Cron owns those steps after the first epoch is started.
 
-Launch execution is manual-only. `PUBLIC_DISTRIBUTION_STARTED_AT` is display and schedule metadata for the public dashboard; setting that timestamp does not claim fees, buy WBTC, create snapshots, lock manifests, or send distributions. The live launch sequence only runs from the admin dashboard after pressing `Official Live GO` with `Dry run` off and `Confirm live` enabled.
+Launch arming is manual-only. `PUBLIC_DISTRIBUTION_STARTED_AT` is display and schedule metadata for the public dashboard; setting that timestamp does not claim fees, buy WBTC, create snapshots, lock manifests, or send distributions. The live epoch sequence runs from cron after pressing `Official Live GO` with `Dry run` off and `Confirm live` enabled.
 
 Use the payload builder for values that should travel with the next action:
 

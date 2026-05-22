@@ -1,5 +1,4 @@
 const { isAdminAuthorized, runScheduledEpoch } = require("../lib/admin-control");
-const { epochTick } = require("../lib/rewards/epochs");
 const { cronSecretMatches } = require("../lib/secret-auth");
 const { sendJson } = require("../lib/vercel-api");
 
@@ -71,10 +70,6 @@ module.exports = async function handler(request, response) {
   try {
     const body = request.method === "POST" ? parseBody(request) : {};
     const params = requestSearchParams(request);
-    if (params.get("engine") === "rewards" || body.task === "epoch-tick") {
-      sendJson(response, 200, await epochTick({ source: body.source || "cron-job.org", task: "epoch-tick" }));
-      return;
-    }
     const result = await runScheduledEpoch({
       force: body.force === true || params.get("force") === "true",
       source: body.source || "cron",
