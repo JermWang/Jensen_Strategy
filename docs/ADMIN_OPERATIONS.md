@@ -145,7 +145,7 @@ Recommended env:
 ```env
 DEV_CREATOR_WALLET=<creator/dev wallet public key>
 CREATOR_KEYPAIR_PATH=C:\secure\btc-pizza-creator.json
-CREATOR_FEE_DRY_RUN=true
+CREATOR_FEE_DRY_RUN=false
 CREATOR_FEE_PRIORITY_FEE_SOL=0.000001
 CREATOR_FEE_POOL=pump
 PUMPPORTAL_LOCAL_API_URL=https://pumpportal.fun/api/trade-local
@@ -173,10 +173,10 @@ MAX_RECIPIENTS_PER_BATCH=4
 
 Recommended first live test:
 
-1. Keep `DISTRIBUTOR_DRY_RUN=true`.
+1. Keep the admin UI `Dry run` toggle enabled.
 2. Lock a tiny manifest and generate a batch of `1`.
 3. Click `Execute WBTC Batch`; confirm it builds the transfer transaction.
-4. Set `DISTRIBUTOR_DRY_RUN=false`, disable the UI `Dry run` toggle, and execute a one-recipient batch.
+4. Disable the UI `Dry run` toggle, enable `Confirm live`, and execute a one-recipient batch.
 5. Confirm the saved receipt signature on Solscan.
 
 Use small `MAX_RECIPIENTS_PER_BATCH` values first because creating recipient ATAs and transferring in the same transaction can exceed Solana transaction size if the batch is too large.
