@@ -187,7 +187,7 @@ Use the payload builder for values that should travel with the next action:
 - `rewardPoolWbtc`: WBTC amount to allocate in simulation or distribution.
 - `minPayout`: dust threshold below which recipients are skipped.
 - `batchSize`: max recipients per distribution batch.
-- `roundCap`: max ranked holders included in the run.
+- `roundCap`: max ranked holders included in the run. The effective eligible count is always capped at the current total holder count.
 - `slippageBps`: maximum swap slippage sent to buy/quote webhooks.
 - `snapshotId`: locked manifest/snapshot identifier when your distributor requires one.
 

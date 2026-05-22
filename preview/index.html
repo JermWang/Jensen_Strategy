@@ -1670,9 +1670,16 @@
         sliceScheduleEl.innerHTML = cycle.schedule
           .map((step) => {
             const status = step.epochIndex < cycle.scheduleIndex ? "done" : step.epochIndex === cycle.scheduleIndex ? "active" : "";
-            return `<div class="slice-step ${status}" title="${escapeHtml(step.holderCap.toLocaleString())} holders">${escapeHtml(step.label)}</div>`;
+            return `<div class="slice-step ${status}" title="Up to ${escapeHtml(step.holderCap.toLocaleString())} holders">${escapeHtml(step.label)}</div>`;
           })
           .join("");
+      }
+
+      function effectiveHolderCap(cycle) {
+        const snapshot = state.holderSnapshot;
+        const total = Number(snapshot?.totalHolderCount ?? snapshot?.holders?.length);
+        if (Number.isFinite(total) && total >= 0) return Math.min(cycle.holderCap, total);
+        return cycle.holderCap;
       }
 
       function syncCountdown() {
@@ -1681,7 +1688,7 @@
         state.remaining = cycle.remaining;
         countdownEl.textContent = formatTime(state.remaining);
         intervalEl.textContent = cycle.label;
-        epochHolderCapEl.textContent = cycle.holderCap.toLocaleString();
+        epochHolderCapEl.textContent = effectiveHolderCap(cycle).toLocaleString();
         cycleStatusEl.textContent = `Epoch ${cycle.epochIndex + 1} doubles`;
         renderSliceSchedule(cycle);
       }
@@ -1900,6 +1907,7 @@
         const response = await fetch(`/api/holders?${params}`, { cache: "no-store" });
         state.holderSnapshot = await response.json();
         renderHolderViews();
+        syncCountdown();
         holderStatusEl.textContent = state.holderSnapshot.configured === false ? "Config" : "Live";
       }
 
