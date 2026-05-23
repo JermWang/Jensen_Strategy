@@ -583,7 +583,14 @@ body[data-jensen="hidden"] .hero-jensen { display: none; }
 }
 .brand-strip-item:hover { opacity: 1; }
 .brand-strip-item svg { height: 22px; width: 22px; display: block; flex-shrink: 0; }
-.brand-strip-item img { height: 22px; width: 22px; display: block; flex-shrink: 0; object-fit: contain; }
+.brand-strip-item img {
+  height: 22px;
+  width: auto;
+  max-width: 92px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
 .brand-strip-item b {
   font-family: Inter, sans-serif;
   font-weight: 700;
