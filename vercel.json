@@ -2,6 +2,10 @@
   "outputDirectory": "preview",
   "cleanUrls": true,
   "trailingSlash": false,
+  "functions": {
+    "api/cron/epoch-tick.js": { "maxDuration": 60 },
+    "api/epoch.js": { "maxDuration": 60 }
+  },
   "headers": [
     {
       "source": "/(.*)",

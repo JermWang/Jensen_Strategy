@@ -1310,15 +1310,16 @@
       };
 
       const state = {
-        password: (sessionStorage.getItem("btcPizzaAdminPassword") || "").trim(),
+        password: (sessionStorage.getItem("jensenStrategyAdminPassword") || "").trim(),
         status: null,
         fees: null,
         holders: null,
         nvdax: null,
-        audit: JSON.parse(sessionStorage.getItem("btcPizzaAuditLog") || "[]"),
+        audit: JSON.parse(sessionStorage.getItem("jensenStrategyAuditLog") || "[]"),
         lastLaunchResult: null,
         lastFeedback: null,
-        pendingConfirm: null
+        pendingConfirm: null,
+        _resetConfirmed: false
       };
 
       const $ = (selector) => document.querySelector(selector);
@@ -1433,7 +1434,7 @@
       }
 
       function saveAudit() {
-        sessionStorage.setItem("btcPizzaAuditLog", JSON.stringify(state.audit.slice(0, 200)));
+        sessionStorage.setItem("jensenStrategyAuditLog", JSON.stringify(state.audit.slice(0, 200)));
       }
 
       function addAudit(entry) {
@@ -1468,7 +1469,7 @@
 
       async function unlock() {
         await loadStatus();
-        sessionStorage.setItem("btcPizzaAdminPassword", state.password);
+        sessionStorage.setItem("jensenStrategyAdminPassword", state.password);
         setUnlocked(true);
         addAudit({ status: "success", title: "Admin unlocked", details: state.status.summary });
         await refreshAll();
@@ -1945,33 +1946,66 @@
         const holders = state.holders?.eligibleCount ?? state.holders?.holders?.length ?? 0;
         const nvdax = Number(state.nvdax?.balance || 0);
         const automation = state.status?.automation || {};
+        const requiredMissing = (state.status?.required || []).filter(r => !r.configured).length;
         const mode = dryRunEl.checked ? "dry run" : confirmLiveEl.checked ? "live confirmed" : "live needs confirm";
+
+        let launchState, launchClass;
+        if (automation.active) {
+          launchState = `LIVE · Epoch ${automation.nextEpochNumber || 1} armed`;
+          launchClass = "ok";
+        } else if (action?.configured && !requiredMissing && holders > 0 && nvdax > 0) {
+          launchState = "PRE-LAUNCH · Ready for Go Live";
+          launchClass = "warn";
+        } else if (!requiredMissing) {
+          launchState = "PRE-LAUNCH · Needs holders or NVDAx";
+          launchClass = "warn";
+        } else {
+          launchState = "Setup required";
+          launchClass = "";
+        }
+
         const badges = [
-          `<span class="badge ${action?.configured ? "ok" : "warn"}">${escapeHtml(action?.configured ? "ready" : "missing config")}</span>`,
+          `<span class="badge ${launchClass}" style="font-size:12px;font-weight:800;letter-spacing:.04em;">${escapeHtml(launchState)}</span>`,
           `<span class="badge">${escapeHtml(mode)}</span>`,
           `<span class="badge ${holders ? "ok" : "warn"}">${escapeHtml(`${holders} eligible`)}</span>`,
           `<span class="badge ${nvdax > 0 ? "ok" : "warn"}">${escapeHtml(`${formatNvdax(nvdax)} NVDAx`)}</span>`,
-          `<span class="badge ${automation.active ? "ok" : "warn"}">${escapeHtml(automation.active ? `epoch ${automation.nextEpochNumber} armed` : "cron not armed")}</span>`
+          `<span class="badge ${automation.active ? "ok" : "warn"}">${escapeHtml(automation.active ? `next: ${new Date(automation.nextEpochEndsAt).toLocaleTimeString()}` : "cron not armed")}</span>`
         ];
         $("#launchStatus").innerHTML = badges.join("");
-        $("#goLiveButton").lastChild.textContent = dryRunEl.checked ? "Run Go-Live Checklist" : "Go Live + Arm Epochs";
+        $("#goLiveButton").querySelector("span:first-child").textContent = dryRunEl.checked ? "🚀 Run Checklist (Dry)" : "🚀 Go Live";
       }
 
       async function runAction(actionId) {
         const action = actionById(actionId);
         const payload = parsePayload();
-        const liveAction = action?.dangerous && !dryRunEl.checked;
+
+        // Reset always needs explicit modal confirmation — dry-run mode does NOT bypass it.
+        const isReset = actionId === "go-live-reset";
+        if (isReset && !state._resetConfirmed) {
+          state.pendingConfirm = actionId;
+          $("#confirmTitle").textContent = "Archive & Reset — cannot be undone";
+          $("#confirmBody").textContent =
+            "This permanently archives and deletes all epoch records, holder snapshots, distribution manifests, and airdrop batches in the database, then creates a clean epoch 0.\n\nUse before a real launch or to wipe test data.";
+          $("#acceptConfirm").textContent = "Yes, wipe and reset";
+          $("#confirmModal").classList.remove("hidden");
+          return;
+        }
+        state._resetConfirmed = false;
+
+        const liveAction = action?.dangerous && !dryRunEl.checked && !isReset;
         if (liveAction && !confirmLiveEl.checked) {
           state.pendingConfirm = actionId;
+          $("#confirmTitle").textContent = "Confirm live action";
           $("#confirmBody").textContent = `${action.label} can submit irreversible transactions. Enable Confirm live, review payload values, then run only if this is intentional.`;
+          $("#acceptConfirm").textContent = "Run action";
           $("#confirmModal").classList.remove("hidden");
           return;
         }
 
         const body = {
           action: actionId,
-          dryRun: dryRunEl.checked,
-          confirm: action?.dangerous ? confirmLiveEl.checked || dryRunEl.checked : true,
+          dryRun: isReset ? false : dryRunEl.checked,
+          confirm: action?.dangerous ? (isReset ? true : confirmLiveEl.checked || dryRunEl.checked) : true,
           payload
         };
         if (actionId === "official-live-go") state.lastFeedback = null;
@@ -2087,7 +2121,7 @@
         renderMonitor();
       });
       $("#logout").addEventListener("click", () => {
-        sessionStorage.removeItem("btcPizzaAdminPassword");
+        sessionStorage.removeItem("jensenStrategyAdminPassword");
         state.password = "";
         state.status = null;
         passwordEl.value = "";
@@ -2095,13 +2129,20 @@
       });
       $("#cancelConfirm").addEventListener("click", () => {
         state.pendingConfirm = null;
+        state._resetConfirmed = false;
+        $("#confirmTitle").textContent = "Confirm live action";
+        $("#acceptConfirm").textContent = "Run action";
         $("#confirmModal").classList.add("hidden");
       });
       $("#acceptConfirm").addEventListener("click", () => {
-        confirmLiveEl.checked = true;
-        $("#confirmModal").classList.add("hidden");
         const actionId = state.pendingConfirm;
         state.pendingConfirm = null;
+        $("#confirmModal").classList.add("hidden");
+        if (actionId === "go-live-reset") {
+          state._resetConfirmed = true;
+        } else {
+          confirmLiveEl.checked = true;
+        }
         if (actionId) runAction(actionId);
       });
 
@@ -2120,7 +2161,7 @@
       if (state.password) {
         passwordEl.value = state.password;
         unlock().catch(() => {
-          sessionStorage.removeItem("btcPizzaAdminPassword");
+          sessionStorage.removeItem("jensenStrategyAdminPassword");
           state.password = "";
           setUnlocked(false);
         });

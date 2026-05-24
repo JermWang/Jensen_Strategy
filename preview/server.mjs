@@ -11,6 +11,7 @@ Object.assign(process.env, env);
 const require = createRequire(import.meta.url);
 const { adminAuthError, adminStatus, isAdminAuthorized, runAdminAction, runScheduledEpoch } = require("../lib/admin-control.js");
 const { feeReceipts, holderSnapshot, operationsSummary, publicConfig, tokenBalance } = require("../lib/dashboard-service.js");
+const { readRecord } = require("../lib/admin-store.js");
 const { cronSecretMatches } = require("../lib/secret-auth.js");
 const { holdersPayload, receiptsPayload, statusPayload } = require("../lib/rewards/snapshotCache.js");
 const { lookupWallet } = require("../lib/rewards/ticketLookup.js");
@@ -83,7 +84,12 @@ createServer(async (request, response) => {
   const url = new URL(request.url || "/", `http://${request.headers.host}`);
 
   if (url.pathname === "/api/config") {
-    json(response, 200, publicConfig(env));
+    const cfg = publicConfig(env);
+    if (!cfg.distributionStartedAt) {
+      const automation = await readRecord("automation", "epoch-automation").catch(() => null);
+      if (automation?.startedAt) cfg.distributionStartedAt = automation.startedAt;
+    }
+    json(response, 200, cfg);
     return;
   }
 
